@@ -1,0 +1,47 @@
++!pgoTo(X,Y) <- .drop_all_intentions;!goTo(X,Y);!pula(600).
+
++!goTo(X,Y) : position(me,X,Y,_) <- .print(" CHEGUEI!");-movingsideways.//true. //está no lugar certo
+
++!goTo(X,Y) : position(me,A,B,_) & Y > B & not blocked(0,+1,_) & not movingsideways <- !performAction(move(s));!goTo(X,Y).
++!goTo(X,Y) : position(me,A,B,_) & Y > B & blocked(0,1,_) & not movingsideways <- .print(" 1");!desvia(w);!goTo(X,Y).//print("Parou por block1");.
+
++!goTo(X,Y) : position(me,A,B,_) & Y < B & not blocked(0,-1,_) & not movingsideways <- !performAction(move(n));!goTo(X,Y).
++!goTo(X,Y) : position(me,A,B,_) & Y < B & blocked(0,-1,_) & not movingsideways <- .print(" 2");!desvia(e);!goTo(X,Y).//print("Parou por block2").
+
++!goTo(X,Y) : position(me,A,B,_) & Y == B & not movingsideways <- +movingsideways;!goTo(X,Y).
+
++!goTo(X,Y) : position(me,A,B,_) & X < A & not blocked(-1,0,_) <- !performAction(move(w));!goTo(X,Y).
++!goTo(X,Y) : position(me,A,B,_) & X < A & blocked(-1,0,_) <- .print(" 3");!desvia(n);!goTo(X,Y).//print("Parou por block3").
+
++!goTo(X,Y) : position(me,A,B,_) & X > A & not blocked(1,0,_) <- !performAction(move(e));!goTo(X,Y).
++!goTo(X,Y) : position(me,A,B,_) & X > A & blocked(1,0,_) <- .print(" 4");!desvia(s);!goTo(X,Y).//print("Parou por block4");.
+
++!goTo(X,Y) : position(me,A,B,_) & X == A & movingsideways <- -movingsideways;!goTo(X,Y).
+
++!goTo(X,Y) : position(me,A,B,_) <- .print(" ué").
+
++!desvia(s) : position(me,A,B,_) & not blocked(0,1,_) <- .print(" 5");!performAction(move(s)).//print("Parou por block1");.
++!desvia(n) : position(me,A,B,_) & not blocked(0,-1,_) <- .print(" 6");!performAction(move(n)).//print("Parou por block2").
++!desvia(w) : position(me,A,B,_) & not blocked(-1,0,_) <- .print(" 7");!performAction(move(w)).//print("Parou por block3").
++!desvia(e) : position(me,A,B,_) & not blocked(1,0,_) <- .print(" 8");!performAction(move(e)).//print("Parou por block4");.
+
++!desvia(s) : position(me,A,B,_) & blocked(0,1,_) <- .print(" 9");!desvia(w);!desvia(s).//print("Parou por block1");.
++!desvia(n) : position(me,A,B,_) & blocked(0,-1,_) <- .print(" 10");!desvia(e);!desvia(n).//print("Parou por block2").
++!desvia(w) : position(me,A,B,_) & blocked(-1,0,_) <- .print(" 11");!desvia(n);!desvia(w).//print("Parou por block3").
++!desvia(e) : position(me,A,B,_) & blocked(1,0,_) <- .print(" 12");!desvia(s);!desvia(e).//print("Parou por block4");.
+
+
++!desvia(X) <- true.
+
++!handleLastActionResult(ACTION,TIME)
+    :   lastActionResult(ACT,_) & lastAction(rotate,_) & lastActionParams([cw],_) & not .intend(explore) & ACT \== success & attached(_,_,_)
+	<-  -position(me,X,Y,_);+position(me,X,Y,TIME);!performAction(rotate(ccw));.//.
+
+
++!handleLastActionResult(ACTION,TIME)
+    :   lastActionResult(ACT,_) & lastAction(move,_) & lastActionParams(_,_) & not .intend(explore) & ACT \== success & attached(_,_,_)
+	<-  -position(me,X,Y,_);+position(me,X,Y,TIME);!performAction(rotate(cw));.//.
+
++!handleLastActionResult(ACTION,TIME)
+    :   lastActionResult(ACT,_) & lastAction(move,_) & lastActionParams(_,_) & not .intend(explore) & ACT \== success
+	<-  -position(me,X,Y,_);+position(me,X,Y,TIME);.print("--------------",ACT).//.

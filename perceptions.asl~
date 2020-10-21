@@ -1,0 +1,18 @@
++thing(X,Y,dispenser,B,TIME) : position(me,XM,YM,TIME) & not thing(X+XM,Y+YM,dispenser,B)<-
+	+thing(X+XM,Y+YM,dispenser,B); !checkDispensers.
+	
++!checkDispensers : thing(_,_,dispenser,b0) & thing(_,_,dispenser,b1) & thing(_,_,dispenser,b2) & .my_name(M) & not available(M) <- +available(M);.broadcast(tell,available(M)).
++!checkDispensers <- true.
+
++!stop <- !performAction(skip);!stop.
+	
++thing(X,Y,taskboard,_,TIME) : position(me,XM,YM,TIME) <-
+	+thing(X+XM,Y+YM,taskboard).
+	
++goal(X,Y,TIME) : position(me,XM,YM,TIME)<- 
+	+goal(X+XM,Y+YM).
+	
+//+obstacle(X,Y,TIME) : position(me,XM,YM,TIME)<- 
+//	+obstacle(X+XM,Y+YM).
+
+blocked(X,Y,_) :- obstacle(X,Y,_) | thing(X,Y,entity,_,_).

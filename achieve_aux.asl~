@@ -1,0 +1,19 @@
++?group(M,R) : .my_name(Me) & not busy(Me) & not taken(_,_,Me) <- +busy(Me);R = true;+workingWith(M);.drop_all_intentions;.broadcast(tell,busy(Me)).
++?group(M,R) <- R = false.
+
++!achieve(XA,YA,XB,YB,B,XM,YM,M) : workingWith(M) & not .intend(achieve(XA,YA,XB,YB,B,XM,YM,M)) <-
+	!goTo(dispenser,B);
+	!getBlock(B);
+	!goTo(XA,YA);
+	!rotateBlock(XB-XA,YB-YA,B);
+	!connectBlock(XM,YM);
+	!performAction(disconnect(XB-XA,YB-YA));
+	.broadcast(untell,busy(Me)).
+	
++!achieve(XA,YA,XB,YB,B,XM,YM,M) <- .print("Agent ",M, " sent achieve without consent"). 
+	
++!connectBlock(XM,YM) : workingWith(M) & thing(XM,YM,entity,_,_) <- !performAction(connect(M,XA,XB)).
++!connectBlock(XM,YM) <- !performAction(skip);!connectBlock(XM,YM).
+
+-!connectBlock(XM,YM) <- !connectBlock(XM,YM).
+

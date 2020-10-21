@@ -1,0 +1,50 @@
+{ include("explore.asl") }// Agent bob in project MAPC2018.mas2j
+{ include("perceptions.asl") }
+{ include("achieve.asl") }
+{ include("achieve_aux.asl") }
+{ include("movement.asl") }
+{ include("acknowledge.asl") }
+
+/* Initial beliefs and rules */
+position(me,0,0,0).
+maxAgents(6).
+/* Initial goals */
+
+//!start.
+!moveRegister.
+//!explore.
+/* Plans */
+
++!moveRegister <- !performAction(move(n));?thing(0,0,entity,TEAM,_);+team(TEAM);!explore.
+
++!start : true <- 
+	!goTo(10,0);
+	!goTo(0,0);
+	//!performAction(move(n));
+	.print("fui e vortei.");
+	!!start.
+
+@performAction[atomic]
++!performAction(ACTION)
+<-  .print(" Executing action ",ACTION);
+	ACTION;
+	.wait("+step(_,_)"); // Wait for the next simulation step
+	?step(STEP_AFTER,TIME);
+	.print("New Step: ", STEP_AFTER);
+	!handleLastActionResult(ACTION,TIME).
+
++!handleLastActionResult(ACTION,_)
+    :   lastActionResult(success,_) & lastAction(LACTION,_) & lastActionParams(PARAMS,_) & LACTION \==move
+    <-  true.
+
++!handleLastActionResult(ACTION,_)
+    :   lastActionResult(failed_random,_) & lastAction(move,_) & lastActionParams(PARAMS,_)
+    <-  -position(me,X,Y,_);+position(me,X,Y,TIME);ACTION.
+	
++!handleLastActionResult(ACTION,_)
+    :   (lastActionResult(failed_random,_)|lastActionResult(failed_resources,_)|lastActionResult(failed_status,_)) & lastAction(LACTION,_) & lastActionParams(PARAMS,_)
+    <-  (ACTION).
+
++!handleLastActionResult(ACTION,_)
+    :   lastActionResult(RES,_) & lastAction(LACTION,_) & lastActionParams(PARAMS,_) & not .intend(explore) & LACTION \==move
+    <-  .print("failed action ",RES);.fail.
