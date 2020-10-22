@@ -39,7 +39,7 @@
 
 +!handleLastActionResult(ACTION,TIME)
     :   lastActionResult(ACT,_) & lastAction(move,_) & lastActionParams(D,_) & not .intend(explore) & ACT \== success
-	<-  !updatePosition(TIME);.print("-----------------",ACT,D).//.
+	<-  !updatePosition(TIME).
 	
 +!randomRotation <- .random(R);
 	if (R < 0.5) { // where vl(X) is a belief

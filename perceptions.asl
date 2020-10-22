@@ -1,8 +1,4 @@
 +thing(X,Y,dispenser,B,TIME) : position(me,XM,YM,TIME) & not thing(X+XM,Y+YM,dispenser,B)<-
-	if(not thing(_,_,dispenser,B)){
-		.my_name(Me);
-		.broadcast(tell,thing(Me,dispenser,B));
-	};
 	+thing(X+XM,Y+YM,dispenser,B); !checkDispensers;
 	for ( mapper(A,_,_) ) {
     	?mapper(A,XA,YA);
@@ -15,22 +11,13 @@
 +!stop <- !performAction(skip);!stop.
 	
 +thing(X,Y,taskboard,_,TIME) : position(me,XM,YM,TIME) <-
-	if(not thing(_,_,taskboard)){
-		.my_name(Me);
-		.broadcast(tell,thing(Me,taskboard));
-	};
 	+thing(X+XM,Y+YM,taskboard);
 	for ( mapper(A,_,_) ) {
     	?mapper(A,XA,YA);
 		.send(A,tell,thing(X+XM+XA,Y+YM+YA,taskboard));
     }.
 	
-+goal(X,Y,TIME) : goal(X+1,Y,TIME) & goal(X-1,Y,TIME) & goal(X,Y+1,TIME) & goal(X,Y-1,TIME) &
-	position(me,XM,YM,TIME)<- 
-	if(not goal(_,_)){
-		.my_name(Me);
-		.broadcast(tell,thing(Me,goal));
-	};
++goal(X,Y,TIME) : goal(X+1,Y,TIME) & goal(X-1,Y,TIME) & goal(X,Y+1,TIME) & goal(X,Y-1,TIME) & position(me,XM,YM,TIME)<- 
 	+goal(X+XM,Y+YM);
 	for ( mapper(A,_,_) ) {
     	?mapper(A,XA,YA);

@@ -20,13 +20,6 @@ maxAgents(15).
 +!moveRegister : attached(_,_,_) <- !performAction(clear(0,0));?thing(0,0,entity,TEAM,_);+team(TEAM);!explore.
 +!moveRegister <- !performAction(move(n));?thing(0,0,entity,TEAM,_);+team(TEAM);!explore.
 
-+!start : true <- 
-	!goTo(10,0);
-	!goTo(0,0);
-	//!performAction(move(n));
-	.print("fui e vortei.");
-	!!start.
-
 @performAction[atomic]
 +!performAction(ACTION)
 <-  .print(" Executing action ",ACTION);
@@ -34,7 +27,9 @@ maxAgents(15).
 	.wait("+step(_,_)"); // Wait for the next simulation step
 	?step(STEP_AFTER,TIME);
 	.print("New Step: ", STEP_AFTER);
-	!handleLastActionResult(ACTION,TIME).
+	!handleLastActionResult(ACTION,TIME);
+	!updatePosition(TIME).
+	//.wait(300).
 
 +!handleLastActionResult(ACTION,TIME)
     :   lastActionResult(success,_) & lastAction(rotate,_) & lastActionParams([cw],_)
