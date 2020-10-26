@@ -1,45 +1,45 @@
 +!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(success,_) & lastAction(move,_) & lastActionParams([n],_)
+    :   lastActionResult(success,TIME) & lastAction(move,TIME) & lastActionParams([n],TIME)
 	<- 	-position(me,X,Y,_);
 		+position(me,X,Y-1,TIME).
 
 +!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(success,_) & lastAction(move,_) & lastActionParams([s],_)
+    :   lastActionResult(success,TIME) & lastAction(move,TIME) & lastActionParams([s],TIME)
 	<- 	-position(me,X,Y,_);
 		+position(me,X,Y+1,TIME).
-		
+
 +!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(success,_) & lastAction(move,_) & lastActionParams([e],_)
+    :   lastActionResult(success,TIME) & lastAction(move,TIME) & lastActionParams([e],TIME)
 	<- 	-position(me,X,Y,_);
 		+position(me,X+1,Y,TIME).
-		
+
 +!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(success,_) & lastAction(move,_) & lastActionParams([w],_)
+    :   lastActionResult(success,TIME) & lastAction(move,TIME) & lastActionParams([w],TIME)
 	<- 	-position(me,X,Y,_);
 		+position(me,X-1,Y,TIME).
-		
+
 	///////////////////////////
 +!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(failed_path,_) & lastAction(move,_) & lastActionParams([n],_) & .intend(explore)
+    :   lastActionResult(failed_path,TIME) & lastAction(move,TIME) & lastActionParams([n],TIME) & .intend(explore)
 	<-  -moving(n);+moving(e);-position(me,X,Y,_);+position(me,X,Y,TIME).
-	
+
 +!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(failed_path,_) & lastAction(move,_) & lastActionParams([e],_) & .intend(explore)
+    :   lastActionResult(failed_path,TIME) & lastAction(move,TIME) & lastActionParams([e],TIME) & .intend(explore)
 	<-  -moving(e);+moving(s);-position(me,X,Y,_);+position(me,X,Y,TIME).
 
 +!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(failed_path,_) & lastAction(move,_) & lastActionParams([s],_) & .intend(explore)
+    :   lastActionResult(failed_path,TIME) & lastAction(move,TIME) & lastActionParams([s],TIME) & .intend(explore)
 	<-  -moving(s);+moving(w);-position(me,X,Y,_);+position(me,X,Y,TIME).
-	
+
 +!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(failed_path,_) & lastAction(move,_) & lastActionParams([w],_) & .intend(explore)
+    :   lastActionResult(failed_path,TIME) & lastAction(move,TIME) & lastActionParams([w],TIME) & .intend(explore)
 	<-  -moving(w);+moving(n);-position(me,X,Y,_);+position(me,X,Y,TIME).
 ///////////////////////////
 
 +!explore : recognized(Mapps) & Mapps >= 4 & //conhece agentes
 			.count(taken(_,_,_),Tk) & Tk <= Ags/3 & //poucas tasks
 			task(_,_,_,_,_) & // pelo menos uma task
-			thing(_,_,taskboard) & 
+			thing(_,_,taskboard) &
 			.my_name(M) & available(M) & // conhece os dispensers
 			goal(_,_)
 	<- !!achieve.
@@ -65,7 +65,7 @@
 		!performAction(move(w));
 	}
 	!explore.
-	
+
 +!explore : moving(X)
 <- 	!performAction(move(X));
 	.random(R);

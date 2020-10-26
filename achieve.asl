@@ -1,7 +1,7 @@
 //+!achieve : .intend(achieve) | .intend(achieve(N)) <- .print(" -----------------------New achieve").
 +!achieve : maxAgents(Ags) & .count(taken(_,_,_),T) & T > Ags/3 <- !!explore.//keep exploring - talvez mudar em função dos busy e conhecidos
 
-+!achieve <- 
++!achieve <-
 	!removeMoving;
 	.my_name(Me);
 	+busy(Me);
@@ -19,15 +19,15 @@
 +!removeMoving : moving(_) <- -moving(_).
 +!removeMoving <- true.
 
-+!achieve(1) <- 
++!achieve(1) <-
 	?taken(T,[req(XB,YB,B)],M);
 	!goTo(dispenser,B);
 	!getBlock(B);
 	!goTo(goal);
 	!rotateBlock(XB,YB,B);
 	!performAction(submit(T)).
-	
-+!achieve(2) <- 
+
++!achieve(2) <-
 	.my_name(M);
 	?istaken(T,[req(XA,YA,A),req(XB,YB,B)],M);
 	!selectAgent(1);
@@ -41,8 +41,8 @@
 	!connectBlock(1);
 	!performAction(submit(T));
 	-agPos(_,_,_,_,_,_).
-	
-+!achieve(3) <- 
+
++!achieve(3) <-
 	.my_name(M);
 	?taken(T,[req(XA,YA,A),req(XB,YB,B),req(XC,YC,C)],M);
 	//select agent
@@ -55,14 +55,14 @@
 	//connectBlock
 	!performAction(submit(T)).
 
-+!getGoal(XG,YG) : position(me,Xme,Yme,_) <- 
++!getGoal(XG,YG) : position(me,Xme,Yme,_) <-
 .setof(g(((X-Xme)**2)+((Y-Yme)**2),X,Y),goal(X,Y),L);
 .min(L,g(_,XG,YG));
 ?goal(XG,YG).
 
 -!getGoal(XG,YG) <- .print("------------------ERROU");.fail.
-	
-+!selectAgent(I) : available(M) & mapper(M,_,_,_,_,_) & not busy(M) & not taken(_,_,M) <- 
+
++!selectAgent(I) : available(M) & mapper(M,_,_,_,_,_) & not busy(M) & not taken(_,_,M) <-
 		.my_name(Me);
 		.send(M,askOne,group(Me,R),group(Me,Reply),30000);
 		if (Reply == true){
@@ -73,7 +73,7 @@
 			+busy(M);
 			!selectAgent(I);
 		}.
-		
+
 +!selectAgent(I) <- .print(" Select agent failed");!performAction(skip);!selectAgent(I).
 
 +?istaken(T,[req(XA,YA,A),req(XB,YB,B)],M) : taken(T,[req(0,1,A),req(XB,YB,B)],M) <- XA = 0;YA = 1.
@@ -88,7 +88,7 @@
 +!waitAg(1) : worker(M,1) & agPos(M,XAg,YAg,XBl,YBl,Bl) & thing(XAg,YAg,entity,_,_) & thing(XBl,YBl,block,_,_) <- .print("Finished waiting for ",M).
 +!waitAg(1) : .my_name(Me) & taken(N,R,Me) & not task(N,_,_,_,_) <- ?worker(M,1);.send(M,unachieve,achieve(_,_,_,_,_,_,_,_));.fail. //desiste da task.
 +!waitAg(1) : worker(M,1) <- .print("Waiting for ",M);!performAction(skip);!waitAg(1).
-//TODO: add cldesiste 
+//TODO: add cldesiste
 
 -!achieve : hasBlock(_) <- !moveandclear;-hasBlock(_);!!explore.//TODO: clear missions?
 
@@ -98,7 +98,7 @@
 //Get perform action connect fail
 
 //+!goTo(taskboard) : thing(XT,YT,taskboard) <- !goTo(XT,YT).
-+!goTo(taskboard) : position(me,Xme,Yme,_) & thing(_,_,taskboard) <- 
++!goTo(taskboard) : position(me,Xme,Yme,_) & thing(_,_,taskboard) <-
 .setof(g(((X-Xme)**2)+((Y-Yme)**2),X,Y),thing(X,Y,taskboard),L);
 .min(L,g(_,XG,YG));
 !goTo(XG,YG).
@@ -115,16 +115,16 @@
 //-!getTask <- !getTask.
 
 +!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(success,_) & lastAction(accept,_) & lastActionParams([N],_)
+    :   lastActionResult(success,TIME) & lastAction(accept,TIME) & lastActionParams([N],TIME)
 	<- 	!updatePosition(TIME);.my_name(M);?task(N,_,_,R,_);.broadcast(tell,taken(N,R,M));+taken(N,R,M);.print("Accepted ",N).
-	
+
 +!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(success,_) & lastAction(submit,_) & lastActionParams(_,_)
+    :   lastActionResult(success,TIME) & lastAction(submit,TIME) & lastActionParams(TIME,_)
 	<- 	.print("--------------------------------------------------------SCORE!");
 		!updatePosition(TIME);.my_name(M);?taken(N,R,M);.abolish(taken(_,_,M));.broadcast(untell,taken(N,R,M)).
-	
+
 +!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(failed_target,_) & lastAction(submit,_) & lastActionParams([T],_) & not task(T,_,_,_,_,_)
+    :   lastActionResult(failed_target,TIME) & lastAction(submit,TIME) & lastActionParams([T],TIME) & not task(T,_,_,_,_,_)
 	<- 	!updatePosition(TIME);.my_name(M);?taken(N,R,M);.abolish(taken(_,_,M));.broadcast(untell,taken(N,R,M));?worker(W,_);-worker(W,_);.send(W,unachieve,achieve(_,_,_,_,_,_,_,_));!moveandclear.
 
 
@@ -137,7 +137,7 @@
 +!clearTasks <- true.
 
 //+!goTo(dispenser,B) : thing(XT,YT,dispenser,B) <- !goTo(XT,YT);?position(me,XT,YT,T);?thing(0,0,dispenser,B,T);.print("Em cima do dispenser").
-+!goTo(dispenser,B) : position(me,Xme,Yme,_) & thing(_,_,dispenser,B) <- 
++!goTo(dispenser,B) : position(me,Xme,Yme,_) & thing(_,_,dispenser,B) <-
 .setof(g(((X-Xme)**2)+((Y-Yme)**2),X,Y),thing(X,Y,dispenser,B),L);
 .min(L,g(_,XG,YG));
 !goTo(XG,YG);
@@ -168,7 +168,7 @@
 -!rotateBlock(XB,YB,B) <- !performAction(skip);!rotateBlock(XB,YB,B).
 
 +!moveandclear : team(Team) & .count(thing(_,_,entity,TEAM,_),N) & N < 2 <- !performAction(clear(0,0)). // is alone
-+!moveandclear <- 
++!moveandclear <-
 	.random(R);
 	if (R < 0.25) {
        !performAction(move(n));
@@ -177,6 +177,5 @@
     }elif (R < 0.75) {
        !performAction(move(s));
     }else{
-       !performAction(move(w));		
+       !performAction(move(w));
 	}!moveandclear.
-

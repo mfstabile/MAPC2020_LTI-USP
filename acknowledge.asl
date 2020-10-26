@@ -9,14 +9,6 @@
 
 +!acknowledge(M,X,Y,XA,YA,T) : maxAgents(Max) & recognized(Max) & nolog <- true.
 +!acknowledge(M,X,Y,XA,YA,T) : maxAgents(Max) & recognized(Max) <- .abolish(log(_,_,_,_));+nolog.
-//Teste:
-+!acknowledge(_,_,_,_,_,_) : maxAgents(Max) & recognized(Max-1) & false <- 
-	.drop_all_intentions;
-	?position(me,XM,YM,T)
-	for ( mapper(M,XA,YA,_) ) {
-    	.send(M,achieve,pgoTo(XM+XA,YM+YA));
-    };
-	!pula(500).
 
 +!acknowledge(M,X,Y,XM,YM,T) : mapper(M,_,_,_,_,_) <- +log(M,X,Y,T).
 

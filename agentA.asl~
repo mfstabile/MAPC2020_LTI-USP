@@ -28,34 +28,37 @@ maxAgents(15).
 	?step(STEP_AFTER,TIME);
 	.print("New Step: ", STEP_AFTER);
 	!handleLastActionResult(ACTION,TIME);
-	!updatePosition(TIME);
-	.wait(300).
+
+	//.wait(300).
+
++!handleLastActionResult(skip,TIME)
+		<-  !updatePosition(TIME).
 
 +!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(success,_) & lastAction(rotate,_) & lastActionParams([cw],_)
+    :   lastActionResult(success,TIME) & lastAction(rotate,TIME) & lastActionParams([cw],TIME)
     <-  !updateBlockCW;!updatePosition(TIME).
-	
+
 +!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(success,_) & lastAction(rotate,_) & lastActionParams([ccw],_)
+    :   lastActionResult(success,TIME) & lastAction(rotate,TIME) & lastActionParams([ccw],TIME)
     <-  !updateBlockCCW;!updatePosition(TIME).
-	
+
 +!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(success,_) & lastAction(clear,_) & lastActionParams([0,0],_) & thing(X,Y,block,_,_)
+    :   lastActionResult(success,TIME) & lastAction(clear,TIME) & lastActionParams([0,0],TIME) & thing(X,Y,block,_,_)
     <-  !updatePosition(TIME);!performAction(clear(0,0)).
 
 +!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(success,_) & lastAction(LACTION,_) & lastActionParams(PARAMS,_) & LACTION \==move
+    :   lastActionResult(success,TIME) & lastAction(LACTION,TIME) & lastActionParams(PARAMS,TIME) & LACTION \==move
     <-  !updatePosition(TIME).
 
 +!handleLastActionResult(ACTION,TIME)
-    :   (lastActionResult(failed_random,_)|lastActionResult(failed_resources,_)|lastActionResult(failed_status,_)) & lastAction(LACTION,_) & lastActionParams(PARAMS,_)
-    <-  !updatePosition(TIME);(ACTION).
+    :   (lastActionResult(failed_random,TIME)|lastActionResult(failed_resources,TIME)|lastActionResult(failed_status,TIME)) & lastAction(LACTION,TIME) & lastActionParams(PARAMS,TIME)
+    <-  !updatePosition(TIME);!performAction(ACTION).
 
 +!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(RES,_) & lastAction(LACTION,_) & lastActionParams(PARAMS,_) & not .intend(explore) & LACTION \==move
+    :   lastActionResult(RES,TIME) & lastAction(LACTION,TIME) & lastActionParams(PARAMS,TIME) & not .intend(explore) & LACTION \==move
     <-  !updatePosition(TIME);.print("failed action ",RES);.fail.
-	
-	
+
+
 +!updateBlockCW : hasBlock(n) <- -hasBlock(n);+hasBlock(e).
 +!updateBlockCW : hasBlock(e) <- -hasBlock(e);+hasBlock(s).
 +!updateBlockCW : hasBlock(s) <- -hasBlock(s);+hasBlock(w).

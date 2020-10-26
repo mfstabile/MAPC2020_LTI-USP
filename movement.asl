@@ -34,13 +34,13 @@
 +!desvia(X) <- true.
 
 +!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(ACT,_) & lastAction(move,_) & lastActionParams(_,_) & not .intend(explore) & ACT \== success & attached(_,_,_)
+    :   lastActionResult(ACT,TIME) & lastAction(move,TIME) & lastActionParams(_,TIME) & not .intend(explore) & ACT \== success & attached(_,_,_)
 	<-  !updatePosition(TIME);!randomRotation;.//.
 
 +!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(ACT,_) & lastAction(move,_) & lastActionParams(D,_) & not .intend(explore) & ACT \== success
+    :   lastActionResult(ACT,TIME) & lastAction(move,TIME) & lastActionParams(D,TIME) & not .intend(explore) & ACT \== success
 	<-  !updatePosition(TIME).
-	
+
 +!randomRotation <- .random(R);
 	if (R < 0.5) { // where vl(X) is a belief
     	!performAction(rotate(cw));
@@ -48,5 +48,5 @@
 	else { // where vl(X) is a belief
     	!performAction(rotate(ccw));
     }.
-	
+
 -!randomRotation <- !randomRotation.

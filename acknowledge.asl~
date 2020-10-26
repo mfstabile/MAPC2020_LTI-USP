@@ -6,8 +6,9 @@
 	.count(mapper(_,_,_,_,_,_),Mapps);
 	-recognized(_);
 	+recognized(Mapps).
-	
-//+!acknowledge(M,X,Y,XA,YA,T) : maxAgents(Max) & recognized(Max) <- true.
+
++!acknowledge(M,X,Y,XA,YA,T) : maxAgents(Max) & recognized(Max) & nolog <- true.
++!acknowledge(M,X,Y,XA,YA,T) : maxAgents(Max) & recognized(Max) <- .abolish(log(_,_,_,_));+nolog.
 //Teste:
 +!acknowledge(_,_,_,_,_,_) : maxAgents(Max) & recognized(Max-1) & false <- 
 	.drop_all_intentions;
