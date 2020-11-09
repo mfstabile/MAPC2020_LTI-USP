@@ -1,7 +1,16 @@
-+thing(X,Y,dispenser,B,TIME) : position(me,XM,YM,TIME) & not thing(X+XM,Y+YM,dispenser,B)<-
-	+thing(X+XM,Y+YM,dispenser,B); !checkDispensers;
-	for ( mapper(A,_,_) ) {
-    	?mapper(A,XA,YA);
++thing(X,Y,dispenser,B,TIME) : position(me,XM,YM,TIME) & not thing(X+XM,Y+YM,dispenser,B) <-
+	!addDispenser(X,XM,Y,YM,B).
++thing(X,Y,dispenser,B,TIME) : not position(me,XM,YM,TIME) <- 
+	.wait("+position(me,_,_,TIME)");
+	?position(me,XM,YM,TIME);
+	if(not thing(X+XM,Y+YM,dispenser,B)){
+		!addDispenser(X,XM,Y,YM,B);
+	}.
+
++!addDispenser(X,XM,Y,YM,B) <-
+	//.print("disp");
+	+thing(X+XM,Y+YM,dispenser,B);// !checkDispensers;
+	for ( mapper(A,XA,YA,_,_,_) ) {
 		.send(A,tell,thing(X+XM+XA,Y+YM+YA,dispenser,B));
     }.
 	
@@ -12,19 +21,30 @@
 	
 +thing(X,Y,taskboard,_,TIME) : position(me,XM,YM,TIME) <-
 	+thing(X+XM,Y+YM,taskboard);
-	for ( mapper(A,_,_) ) {
-    	?mapper(A,XA,YA);
-		.send(A,tell,thing(X+XM+XA,Y+YM+YA,taskboard));
+	for ( mapper(A,XA,YA,_,_,_) ) {
+    	.send(A,tell,thing(X+XM+XA,Y+YM+YA,taskboard));
+    }.
++thing(X,Y,taskboard,_,TIME) : not position(me,XM,YM,TIME) <-
+	.wait("+position(me,_,_,TIME)");
+	?position(me,XM,YM,TIME);
+	+thing(X+XM,Y+YM,taskboard);
+	for ( mapper(A,XA,YA,_,_,_) ) {
+    	.send(A,tell,thing(X+XM+XA,Y+YM+YA,taskboard));
     }.
 	
 +goal(X,Y,TIME) : goal(X+1,Y,TIME) & goal(X-1,Y,TIME) & goal(X,Y+1,TIME) & goal(X,Y-1,TIME) & position(me,XM,YM,TIME)<- 
 	+goal(X+XM,Y+YM);
-	for ( mapper(A,_,_) ) {
-    	?mapper(A,XA,YA);
-		.send(A,tell,goal(X+XM+XA,Y+YM+YA));
+	for ( mapper(A,XA,YA,_,_,_) ) {
+    	.send(A,tell,goal(X+XM+XA,Y+YM+YA));
     }.
-	
-//+obstacle(X,Y,TIME) : position(me,XM,YM,TIME)<- 
-//	+obstacle(X+XM,Y+YM).
++goal(X,Y,TIME) : goal(X+1,Y,TIME) & goal(X-1,Y,TIME) & goal(X,Y+1,TIME) & goal(X,Y-1,TIME) & not position(me,XM,YM,TIME)<- 
+	.wait("+position(me,_,_,TIME)");
+	?position(me,XM,YM,TIME);
+	+goal(X+XM,Y+YM);
+	for ( mapper(A,XA,YA,_,_,_) ) {
+    	.send(A,tell,goal(X+XM+XA,Y+YM+YA));
+    }.
 
 blocked(X,Y,_) :- obstacle(X,Y,_) | thing(X,Y,entity,_,_) | thing(X,Y,block,_,_).
+
+

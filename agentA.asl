@@ -20,42 +20,42 @@ maxAgents(15).
 +!moveRegister : attached(_,_,_) <- !performAction(clear(0,0));?thing(0,0,entity,TEAM,_);+team(TEAM);!explore.
 +!moveRegister <- !performAction(move(n));?thing(0,0,entity,TEAM,_);+team(TEAM);!explore.
 
-@performAction[atomic]
+//@performAction[atomic]
 +!performAction(ACTION)
-<-  .print(" Executing action ",ACTION);
+<-  //.print(" Executing action ",ACTION);
+	//.wait(1000);
 	ACTION;
+	?step(STEP,T);
 	.wait("+step(_,_)"); // Wait for the next simulation step
-	?step(STEP_AFTER,TIME);
-	.print("New Step: ", STEP_AFTER);
-	!handleLastActionResult(ACTION,TIME).
+	?step(STEP_NEW,TIME);
+	+stepLog(STEP_NEW,TIME);
+	?lastActionResult(LAR,TIME);
+	?lastAction(LACT,TIME);
+	?lastActionParams(LAP,TIME);
+	//.print("New Step: ", STEP+1);
+	!checkDispensers;
+	!handleLastActionResult(ACTION,TIME,LAR,LACT,LAP).
 
++?step(STEP,T) : not stepLog(_,_) <- STEP=0;T=0.
 	//.wait(300).
 
-+!handleLastActionResult(skip,TIME) <- !updatePosition(TIME).
++!handleLastActionResult(skip,TIME,LAR,LACT,LAP) <- !updatePosition(TIME).
 
-+!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(success,TIME) & lastAction(rotate,TIME) & lastActionParams([cw],TIME)
-    <-  !updateBlockCW;!updatePosition(TIME).
-
-+!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(success,TIME) & lastAction(rotate,TIME) & lastActionParams([ccw],TIME)
-    <-  !updateBlockCCW;!updatePosition(TIME).
-
-+!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(success,TIME) & lastAction(clear,TIME) & lastActionParams([0,0],TIME) & thing(X,Y,block,_,_)
++!handleLastActionResult(ACTION,TIME,success,clear,[0,0])
+    :   thing(0,1,block,_,_) | thing(0,-1,block,_,_) | thing(1,0,block,_,_) | thing(-1,0,block,_,_)
     <-  !updatePosition(TIME);!performAction(clear(0,0)).
 
-+!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(success,TIME) & lastAction(LACTION,TIME) & lastActionParams(PARAMS,TIME) & LACTION \==move
++!handleLastActionResult(ACTION,TIME,success,LACT,LAP)
+    :   LACT \==move
     <-  !updatePosition(TIME).
 
-+!handleLastActionResult(ACTION,TIME)
-    :   (lastActionResult(failed_random,TIME)|lastActionResult(failed_resources,TIME)|lastActionResult(failed_status,TIME)) & lastAction(LACTION,TIME) & lastActionParams(PARAMS,TIME)
++!handleLastActionResult(ACTION,TIME,LAR,LACT,LAP)
+    :   (LAR==failed_random|LAR==failed_resources|LAR==failed_status)
     <-  !updatePosition(TIME);!performAction(ACTION).
 
-+!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(RES,TIME) & lastAction(LACTION,TIME) & lastActionParams(PARAMS,TIME) & not .intend(explore) & LACTION \==move
-    <-  !updatePosition(TIME);.print("failed action ",RES);.fail.
++!handleLastActionResult(ACTION,TIME,LAR,LACT,LAP)
+    :   not .intend(explore) & LACT \==move
+    <-  !updatePosition(TIME);.print("failed action ",ACTION);.fail.
 
 
 +!updateBlockCW : hasBlock(n) <- -hasBlock(n);+hasBlock(e).
@@ -69,3 +69,27 @@ maxAgents(15).
 +!updateBlockCCW : hasBlock(w) <- -hasBlock(w);+hasBlock(s).
 
 +!updatePosition(TIME) <- -position(me,X,Y,_);+position(me,X,Y,TIME).
+
+//test:
++!handleLastActionResult(ACTION,TIME,LAR,LACT,LAP)
+    :   lastActionResult(ACT,TIME) & lastAction(move,TIME) & lastActionParams(D,TIME) & not .intend(explore)
+	<- .print("-------------------------------------------",ACT,ACTION,D);.fail.
+
++!handleLastActionResult(ACTION,TIME,LAR,LACT,LAP)
+    :   lastActionResult(ACT,TIME) & lastAction(move,TIME) & lastActionParams(D,TIME)
+	<- .print("-------------------------------------------expl",ACT,ACTION,D);.fail.
+
++!handleLastActionResult(ACTION,TIME,LAR,LACT,LAP)
+    :   lastActionResult(ACT,TIME) & lastAction(LACT,TIME) & lastActionParams(D,TIME)
+	<- .print("-------------------------------------------misterio1",ACT,LACT,D);.fail.
+	
++!handleLastActionResult(ACTION,TIME,LAR,LACT,LAP)
+    //:   lastActionResult(ACT,TIME) & lastAction(LACT,TIME) & lastActionParams(D,TIME)
+	<- 	.print("-------------------------------------------misterio2",ACTION,TIME);
+	?lastActionResult(A,T);
+	?lastAction(LACT,T);
+	.print("-------------------------------------------misterio2",A,T,LACT);
+	?lastActionResult(ACT,TIME);
+	?lastAction(LACT,TIME);
+	?lastActionParams(D,TIME);
+	.fail.

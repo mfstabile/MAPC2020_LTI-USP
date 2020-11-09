@@ -5,7 +5,7 @@
 	!removeMoving;
 	.my_name(Me);
 	+busy(Me);
-	.broadcast(tell,busy(Me))
+	.broadcast(tell,busy(Me));
 	!goTo(taskboard);
 	!getTask;//Verificar se o retorno é o nome de uma task
 	.my_name(M);
@@ -13,7 +13,7 @@
 	.length(Reqs,R);
 	!achieve(R);
 	-busy(Me);
-	.broadcast(untell,busy(Me))
+	.broadcast(untell,busy(Me));
 	!!explore.
 
 +!removeMoving : moving(_) <- -moving(_).
@@ -105,7 +105,8 @@
 
 
 +!getTask <- //!clearTasks;
-	.findall(X,task(N,X,_,[req(_,_,_),req(_,_,_)],_) & not taken(N,_,_),Deadlines);
+//	.findall(X,task(N,X,_,[req(_,_,_),req(_,_,_)],_) & not taken(N,_,_),Deadlines);
+	.findall(X,task(N,X,_,[req(_,_,_)],_) & not taken(N,_,_),Deadlines);
 	if(Deadlines == []){
 		!performAction(skip);!getTask;
 	}
@@ -114,17 +115,15 @@
 	}.
 //-!getTask <- !getTask.
 
-+!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(success,TIME) & lastAction(accept,TIME) & lastActionParams([N],TIME)
-	<- 	!updatePosition(TIME);.my_name(M);?task(N,_,_,R,_);.broadcast(tell,taken(N,R,M));+taken(N,R,M);.print("Accepted ",N).
++!handleLastActionResult(ACTION,TIME,success,accept,[N])
+    <- 	!updatePosition(TIME);.my_name(M);?task(N,_,_,R,_);.broadcast(tell,taken(N,R,M));+taken(N,R,M);.print("Accepted ",N).
 
-+!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(success,TIME) & lastAction(submit,TIME) & lastActionParams(TIME,_)
++!handleLastActionResult(ACTION,TIME,success,submit,LAP)
 	<- 	.print("--------------------------------------------------------SCORE!");
 		!updatePosition(TIME);.my_name(M);?taken(N,R,M);.abolish(taken(_,_,M));.broadcast(untell,taken(N,R,M)).
 
-+!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(failed_target,TIME) & lastAction(submit,TIME) & lastActionParams([T],TIME) & not task(T,_,_,_,_,_)
++!handleLastActionResult(ACTION,TIME,failed_target,submit,[T])
+    :   not task(T,_,_,_,_,_)
 	<- 	!updatePosition(TIME);.my_name(M);?taken(N,R,M);.abolish(taken(_,_,M));.broadcast(untell,taken(N,R,M));?worker(W,_);-worker(W,_);.send(W,unachieve,achieve(_,_,_,_,_,_,_,_));!moveandclear.
 
 
@@ -141,22 +140,40 @@
 .setof(g(((X-Xme)**2)+((Y-Yme)**2),X,Y),thing(X,Y,dispenser,B),L);
 .min(L,g(_,XG,YG));
 !goTo(XG,YG);
-?position(me,XG,YG,T);!checkDispenser;.print("Em cima do dispenser").
+?position(me,XG,YG,T);!checkDispenser(B);.print("Em cima do dispenser").
 
-+!checkDispenser <- ?thing(0,0,dispenser,B,T).
--!checkDispenser : position(me,Xme,Yme,T) & thing(X,Y,dispenser,B,T) & thing(Xme,Yme,dispenser,B)<- -thing(Xme,Yme,dispenser,B);!goTo(XME+X,YME+Y).
--!checkDispenser : position(me,Xme,Yme,T) & not thing(X,Y,dispenser,B,T) & thing(Xme,Yme,dispenser,B)<- -thing(Xme,Yme,dispenser,B);!goTo(dispenser,B).
++!checkDispenser(B) <- ?thing(0,0,dispenser,B,T).
+-!checkDispenser(B) : position(me,Xme,Yme,T) & thing(X,Y,dispenser,B,T) & thing(Xme,Yme,dispenser,B)
+	<-.print("check1"); -thing(Xme,Yme,dispenser,B);!goTo(XME+X,YME+Y).
+-!checkDispenser(B) : position(me,Xme,Yme,T) & not thing(X,Y,dispenser,B,T) & thing(Xme,Yme,dispenser,B)
+	<-.print("check2"); .abolish(thing(Xme,Yme,dispenser,B));!goTo(dispenser,B).
+-!checkDispenser(B)
+	<-.print("nesse vai"); .fail.
 
 //-!goTo(dispenser,B) : position(me,XM,YM,T) & thing(XT,YT,dispenser,B) & XM\==XT & YM\==YT <- !goTo(dispenser,B).
--!goTo(dispenser,B) : position(me,XM,YM,T) & thing(XT,YT,dispenser,B) & not thing(0,0,dispenser,B,T) <- -thing(XT,YT,dispenser,B);!goTo(dispenser,B).
--!goTo(dispenser,B) : not thing(XT,YT,dispenser,B) <- .drop_all_intentions;!!explore.
+-!goTo(dispenser,B) : position(me,XM,YM,T) & thing(XT,YT,dispenser,B) & not thing(0,0,dispenser,B,T) 
+	<- -thing(XT,YT,dispenser,B);!goTo(dispenser,B).
+-!goTo(dispenser,B) : not thing(XT,YT,dispenser,B) 
+	<- .fail.//TODO: undo task taken
 
-+!getBlock(B) : not blocked(0,+1,_) <- !performAction(move(s));!performAction(request(n));!performAction(attach(n));+hasBlock(n).
-+!getBlock(B) : not blocked(0,-1,_) <- !performAction(move(n));!performAction(request(s));!performAction(attach(s));+hasBlock(s).
-+!getBlock(B) : not blocked(-1,0,_) <- !performAction(move(w));!performAction(request(e));!performAction(attach(e));+hasBlock(e).
-+!getBlock(B) : not blocked(+1,0,_) <- !performAction(move(e));!performAction(request(w));!performAction(attach(w));+hasBlock(w).
++!getBlock(B) : not blocked(0,+1,_) <- !getBlock(B,s).
++!getBlock(B,s) <- !performAction(move(s));!performAction(request(n));!performAction(attach(n));+hasBlock(n).
+-!getBlock(B,s) : not thing(0,0,dispenser,B,T) <- ?position(me,X,Y,_); !goto(X,Y+1);!getBlock(B).
+
++!getBlock(B) : not blocked(0,-1,_) <- !getBlock(B,n).
++!getBlock(B,n) <- !performAction(move(n));!performAction(request(s));!performAction(attach(s));+hasBlock(s).
+-!getBlock(B,n) : not thing(0,0,dispenser,B,T) <- ?position(me,X,Y,_); !goto(X,Y-1);!getBlock(B).
+
++!getBlock(B) : not blocked(-1,0,_) <- !getBlock(B,w).
++!getBlock(B,w) <- !performAction(move(w));!performAction(request(e));!performAction(attach(e));+hasBlock(e).
+-!getBlock(B,w) : not thing(0,0,dispenser,B,T) <- ?position(me,X,Y,_); !goto(X-1,Y);!getBlock(B).
+
++!getBlock(B) : not blocked(+1,0,_) <- !getBlock(B,e).
++!getBlock(B,e) <- !performAction(move(e));!performAction(request(w));!performAction(attach(w));+hasBlock(w).
+-!getBlock(B,e) : not thing(0,0,dispenser,B,T) <- ?position(me,X,Y,_); !goto(X+1,Y);!getBlock(B).
 
 -!getBlock(B) : thing(0,0,dispenser,B,T) <- !getBlock(B).
+
 -!getBlock(B) : thing(XD,YD,dispenser,B,T) & not thing(_,_,block,B,_) <- ?position(me,X,Y,_);!goTo(X+XD,Y+YD);!getBlock(B).
 
 +!goTo(goal) : goal(X,Y) <- !goTo(X,Y).

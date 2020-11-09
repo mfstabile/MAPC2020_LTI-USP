@@ -34,19 +34,39 @@
 +!desvia(X) <- true.
 
 +!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(ACT,_) & lastAction(move,_) & lastActionParams(_,_) & not .intend(explore) & ACT \== success & attached(_,_,_)
-	<-  !updatePosition(TIME);!randomRotation;.//.
+    :   lastActionResult(ACT,TIME) & lastAction(move,TIME) & lastActionParams(_,TIME) & not .intend(explore) & ACT \== success & hasBlock(_)
+	<-  !updatePosition(TIME);!performRotation.
 
 +!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(ACT,_) & lastAction(move,_) & lastActionParams(D,_) & not .intend(explore) & ACT \== success
-	<-  !updatePosition(TIME);.print("-----------------",ACT,D).//.
+    :   lastActionResult(ACT,TIME) & lastAction(move,TIME) & lastActionParams(D,TIME) & not .intend(explore) & ACT \== success
+	<-  !updatePosition(TIME).
+
+-!handleLastActionResult(ACTION,TIME)
+    :   lastActionResult(ACT,TIME) & lastAction(ACTION,TIME) & lastActionParams(D,TIME)
+	<- .print("-------------------------------------------",ACT,ACTION,D).
 	
-+!randomRotation <- .random(R);
++!performRotation <- .random(R);
 	if (R < 0.5) { // where vl(X) is a belief
     	!performAction(rotate(cw));
     }
 	else { // where vl(X) is a belief
     	!performAction(rotate(ccw));
     }.
-	
+
 -!randomRotation <- !randomRotation.
+
++!handleLastActionResult(ACTION,TIME)
+    :   lastActionResult(success,TIME) & lastAction(rotate,TIME) & lastActionParams([cw],TIME)
+    <-  !updateBlockCW;!updatePosition(TIME).
+
++!handleLastActionResult(ACTION,TIME)
+    :   lastActionResult(success,TIME) & lastAction(rotate,TIME) & lastActionParams([ccw],TIME)
+    <-  !updateBlockCCW;!updatePosition(TIME).
+	
++!handleLastActionResult(ACTION,TIME)
+    :   lastActionResult(failed,TIME) & lastAction(rotate,TIME) & lastActionParams([cw],TIME)
+    <-  !updatePosition(TIME).
+
++!handleLastActionResult(ACTION,TIME)
+    :   lastActionResult(failed,TIME) & lastAction(rotate,TIME) & lastActionParams([ccw],TIME)
+    <-  !updatePosition(TIME).

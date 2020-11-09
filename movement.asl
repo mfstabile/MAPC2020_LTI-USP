@@ -33,15 +33,15 @@
 
 +!desvia(X) <- true.
 
-+!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(ACT,TIME) & lastAction(move,TIME) & lastActionParams(_,TIME) & not .intend(explore) & ACT \== success & attached(_,_,_)
-	<-  !updatePosition(TIME);!randomRotation;.//.
++!handleLastActionResult(ACTION,TIME,LAR,move,LAP)
+    :   not .intend(explore) & LAR \== success & hasBlock(_)
+	<-  !updatePosition(TIME);!performRotation.
 
-+!handleLastActionResult(ACTION,TIME)
-    :   lastActionResult(ACT,TIME) & lastAction(move,TIME) & lastActionParams(D,TIME) & not .intend(explore) & ACT \== success
++!handleLastActionResult(ACTION,TIME,LAR,move,LAP)
+    :   not .intend(explore) & LAR \== success
 	<-  !updatePosition(TIME).
-
-+!randomRotation <- .random(R);
+	
++!performRotation <- .random(R);
 	if (R < 0.5) { // where vl(X) is a belief
     	!performAction(rotate(cw));
     }
@@ -50,3 +50,12 @@
     }.
 
 -!randomRotation <- !randomRotation.
+
++!handleLastActionResult(ACTION,TIME,success,rotate,[cw])
+    <-  !updateBlockCW;!updatePosition(TIME).
+
++!handleLastActionResult(ACTION,TIME,success,rotate,[ccw])
+    <-  !updateBlockCCW;!updatePosition(TIME).
+	
++!handleLastActionResult(ACTION,TIME,failed,rotate,LAP)
+    <-  !updatePosition(TIME).
