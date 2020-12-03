@@ -1,71 +1,39 @@
-+!handleLastActionResult(ACTION,TIME,success,move,[n])
-	<- 	-position(me,X,Y,_);
-		+position(me,X,Y-1,TIME).
-
-+!handleLastActionResult(ACTION,TIME,success,move,[s])
-	<- 	-position(me,X,Y,_);
-		+position(me,X,Y+1,TIME).
-
-+!handleLastActionResult(ACTION,TIME,success,move,[e])
-	<- 	-position(me,X,Y,_);
-		+position(me,X+1,Y,TIME).
-
-+!handleLastActionResult(ACTION,TIME,success,move,[w])
-	<- 	-position(me,X,Y,_);
-		+position(me,X-1,Y,TIME).
-
-	///////////////////////////
-+!handleLastActionResult(ACTION,TIME,failed_path,move,[n])
-    :   .intend(explore)
-	<-  -moving(n);+moving(e);-position(me,X,Y,_);+position(me,X,Y,TIME).
-
-+!handleLastActionResult(ACTION,TIME,failed_path,move,[e])
-    :   .intend(explore)
-	<-  -moving(e);+moving(s);-position(me,X,Y,_);+position(me,X,Y,TIME).
-
-+!handleLastActionResult(ACTION,TIME,failed_path,move,[s])
-    :   .intend(explore)
-	<-  -moving(s);+moving(w);-position(me,X,Y,_);+position(me,X,Y,TIME).
-
-+!handleLastActionResult(ACTION,TIME,failed_path,move,[w])
-    :   .intend(explore)
-	<-  -moving(w);+moving(n);-position(me,X,Y,_);+position(me,X,Y,TIME).
-///////////////////////////
-
-+!explore : recognized(Mapps) & Mapps >= 4 & //conhece agentes
-			.count(taken(_,_,_),Tk) & Tk < 3 & //poucas tasks
-			task(_,_,_,_,_) & // pelo menos uma task
-			thing(_,_,taskboard) &
-			.my_name(M) & available(M) & // conhece os dispensers
-			goal(_,_)
-	<- !!achieve.
-
-+!pula(0)<- true.
-+!pula(N)<-!performAction(skip);!pula(N-1).
-
++!explore : .my_name(Me) & 
+			available(Me) & 
+			not busy(Me) & 
+			thing(_,_,taskboard) & 
+			goal(_,_) & 
+			.count(mapper(_,_,_),Map) & Map > 3 &
+			.count(achieving(_),Tk) & Tk < 4
+<- .print("achieving");
+	+achieving(Me);.broadcast(tell,achieving(Me))
+	!achieve. 
+			
 +!explore : not moving(_)
 <- 	.random(R);
 	if (R < 0.25) { // where vl(X) is a belief
        +moving(n);
-	   !performAction(move(n));
-    }
+	}
 	elif (R < 0.5) { // where vl(X) is a belief
        +moving(s);
-	   !performAction(move(s));
     }
 	elif (R < 0.75) { // where vl(X) is a belief
        +moving(e);
-	   !performAction(move(e));
-    }else{
+    }
+	else{
 		+moving(w);
-		!performAction(move(w));
 	}
 	!explore.
+	
++!explore :  moving(D) 
+<-	!randomChange;
+	!checkBlocked(0);
+	?moving(ND);
+	!performAction(move(ND));
+	!explore.
 
-+!explore : moving(X)
-<- 	!performAction(move(X));
-	.random(R);
-	if (R < 0.005) { // where vl(X) is a belief
++!randomChange
+<-	if (R < 0.005) { // where vl(X) is a belief
        -moving(_);+moving(n);
     }
 	elif (R < 0.01) { // where vl(X) is a belief
@@ -74,6 +42,34 @@
 	elif (R < 0.015) { // where vl(X) is a belief
        -moving(_);+moving(s);
     }
-	!explore.
+	elif (R < 0.02) { // where vl(X) is a belief
+       -moving(_);+moving(w);
+    }.
 
-//-!explore <- !explore.
++!checkBlocked(4) <- !performAction(skip);!checkBlocked(0).
++!checkBlocked(I)
+<-	?moving(D);
+	if (D==n){
+		if(blocked(0,-1,_)){
+			-moving(_);+moving(e);
+			!checkBlocked(I+1);
+		}
+	}
+	elif (D==s){
+		if(blocked(0,1,_)){
+			-moving(_);+moving(w);
+			!checkBlocked(I+1);
+		}
+	}
+	elif (D==e){
+		if(blocked(1,0,_)){
+			-moving(_);+moving(s);
+			!checkBlocked(I+1);
+		}
+	}
+	elif (D==w){
+		if(blocked(-1,0,_)){
+			-moving(_);+moving(n);
+			!checkBlocked(I+1);
+		}
+	}.

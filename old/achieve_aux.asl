@@ -1,28 +1,14 @@
-+?group(Ag,Reply,BlockTypeB) : .my_name(Me) & not busy(Me) & not taken(_,_,Me) & thing(_,_,dispenser,BlockTypeB) 
-<-	+busy(Me);
-	Reply = true;
-	+workingWith(Ag);
-	.broadcast(tell,busy(Me)).
-+?group(Ag,Reply,BlockTypeB) <- Reply = false.
++?group(M,R) : .my_name(Me) & not busy(Me) & not taken(_,_,Me) <- +busy(Me);R = true;+workingWith(M);.drop_all_intentions;.broadcast(tell,busy(Me)).
++?group(M,R) <- R = false.
 
++!skip <- !performAction(skip);!skip.
 
-+achieve(Ag,XGoal,YGoal,BlockTypeB,Dir) : workingWith(Ag) & not .intend(achieve(_,_,_,_,_))
-<-	.drop_all_intentions;
-	!goTo(dispenser,BlockTypeB);
-	!checkDispenser(BlockTypeB);
-	!getBlock(BlockTypeB);
-	!goTo(XGoal,YGoal);
-	!rotateBlock(BlockTypeB,Dir);
-	//wait?
-	!connectBlock(Ag,BlockTypeB,Dir);
-	.
-	
-+!connectBlock(Ag,BlockTypeB,Dir) : 
-<-	!performAction(connect(Ag,XDir,YDir)).
-/*
 +!achieve(XA,YA,XB,YB,B,XM,YM,M) : workingWith(M) & not .intend(achieve(XA,YA,XB,YB,B,XM,YM,M)) <-
-	
-
+	.drop_all_intentions;
+	!goTo(dispenser,B);
+	!getBlock(B);
+	!goTo(XA,YA);
+	!rotateBlock(XB-XA,YB-YA,B);
 	!connectBlock(XA,YA,XB,YB,B,XM,YM,M);
 	!detach;
 	//	!performAction(disconnect(XB-XA,YB-YA));
@@ -44,4 +30,3 @@
 +!detach : not hasBlock(_) <- .print("Não tem bloco?").
 +!detach : hasBlock(_) & not attached(_,_,_) <- -hasBlock(_).
 -!detach : hasBlock(X) <- -hasBlock(X).
-*/
