@@ -27,8 +27,8 @@ seeBlock(w) :- thing(-1,-1,block,_,_).
 +!moveRegister <- !performAction(move(n));?thing(0,0,entity,TEAM,_);+team(TEAM);!explore.
 
 +!performAction(ACTION)
-<-  ?step(STEP,T);
-	ACTION;
+<-  ACTION;
+	?step(STEP,T);
 	.wait("+step(_,_)"); // Wait for the next simulation step
 	?step(STEP_NEW,TIME);
 	?lastActionResult(LAR,TIME);

@@ -1,4 +1,4 @@
-/*+!achieve <- 
++!achieve <- 
 	.findall(disp(X,Y),thing(X,Y,dispenser,B),Dispensers);
 	.shuffle(Dispensers,ShufDisp);
 	.nth(0,ShufDisp,disp(X,Y));
@@ -7,7 +7,7 @@
 	?thing(0,0,dispenser,_,_);
 	!performAction(skip);
 	!achieve.
-	*/
+	
 	
 +!achieve <-
 	!removeMoving;
@@ -22,7 +22,7 @@
 	!achieve(R);
 	-busy(Me);
 	.broadcast(untell,busy(Me));
-	!!explore.
+	!!achieve.
 	
 	
 +!achieve(2) <-

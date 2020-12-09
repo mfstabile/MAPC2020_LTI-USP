@@ -1,5 +1,14 @@
-+!explore : .my_name(Me) & available(Me) & not busy(Me) <- !achieve. //TODO:add few achieving
-
++!explore : .my_name(Me) & 
+			available(Me) & 
+			not busy(Me) & 
+			thing(_,_,taskboard) & 
+			goal(_,_) & 
+			.count(mapper(_,_,_),Map) & Map > 3 &
+			.count(achieving(_),Tk) & Tk < 5
+<- .print("achieving");
+	+achieving(Me);.broadcast(tell,achieving(Me))
+	!achieve.
+			
 +!explore : not moving(_)
 <- 	.random(R);
 	if (R < 0.25) { // where vl(X) is a belief
@@ -18,7 +27,7 @@
 	
 +!explore :  moving(D) 
 <-	!randomChange;
-	!checkBlocked(0);
+	!checkBlocked(0);//TODO
 	?moving(ND);
 	!performAction(move(ND));
 	!explore.

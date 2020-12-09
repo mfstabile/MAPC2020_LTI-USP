@@ -1,79 +1,74 @@
-{ include("explore.asl") }
-{ include("perceptions.asl") }
-{ include("achieve.asl") }
-{ include("achieve_aux.asl") }
-{ include("move.asl") }
-{ include("acknowledge.asl") }
+{ include("knowledge.asl") }
+{ include("mapping.asl") }
 
-/* Initial beliefs and rules */
-position(me,0,0,0).
-maxAgents(15).
+position(0,0,0).
 
-blocked(X,Y,T) :- obstacle(X,Y,T) | thing(X,Y,entity,_,T) | thing(X,Y,block,_,T).
-seeBlock(n) :- thing(0,-1,block,_,_).
-seeBlock(s) :- thing(0,1,block,_,_).
-seeBlock(e) :- thing(1,0,block,_,_).
-seeBlock(w) :- thing(-1,-1,block,_,_).
-/* Initial goals */
+blocked(n) :- obstacle(0,-1,T) | thing(0,-1,entity,_,T).
+blocked(s) :- obstacle(0,+1,T) | thing(0,+1,entity,_,T).
+blocked(e) :- obstacle(+1,0,T) | thing(+1,0,entity,_,T).
+blocked(w) :- obstacle(-1,0,T) | thing(-1,0,entity,_,T).
 
-//!start.
-!waitRegister.
-//!explore.
-/* Plans */
 
-+!waitRegister <- !performAction(skip);!moveRegister.
+!chooseDirection.
 
-+!moveRegister : attached(_,_,_) <- !performAction(clear(0,0));?thing(0,0,entity,TEAM,_);+team(TEAM);!explore.
-+!moveRegister <- !performAction(move(n));?thing(0,0,entity,TEAM,_);+team(TEAM);!explore.
++!chooseDirection
+<- 	.random(Number);
+	if(Number <0.25){
+		+direction(n);
+	}
+	elif(Number < 0.5){
+		+direction(s);
+	}
+	elif(Number < 0.75){
+		+direction(w);
+	}
+	else{
+		+direction(e);
+	}
+	!walk.
 
-+!performAction(ACTION)
-<-  ACTION;
-	?step(STEP,T);
-	.wait("+step(_,_)"); // Wait for the next simulation step
-	?step(STEP_NEW,TIME);
-	?lastActionResult(LAR,TIME);
-	?lastAction(LACT,TIME);
-	?lastActionParams(LAP,TIME);
-	!handleLastActionResult(ACTION,TIME,LAR,LACT,LAP);
-	!checkDispensers.
-	
-+step(STEP_NEW,TIME) <- +stepLog(STEP_NEW,TIME).
 
-+?step(STEP,T) : not stepLog(_,_) <- STEP=0;T=0.
-	
-+!handleLastActionResult(ACTION,TIME,LAR,LACT,LAP)
-    :   (LAR==failed_random|LAR==failed_resources|LAR==failed_status)
-    <-  !updatePosition(TIME);!performAction(ACTION).
++!walk
+<-	.random(Number);
+	if(Number < 0.01){
+		-direction(_);
+		!chooseDirection;
+	}
+	?direction(Direction);
+	if (not blocked(Direction)){
+		!performAction(move(Direction));
+	}
+	else{
+		-direction(_);
+		!chooseDirection;
+	}
+	!walk.
 
-+!updatePosition(TIME)
-<- 	-position(me,X,Y,_);
-	+position(me,X,Y,TIME).
++!performAction(Action)
+<-	Action;
+		.wait("+step(_,Time)").
 
-+position(me,XM,YM,T) <- +logposition(me,XM,YM,T).
++!getLastPosition(X,Y)
+<-	.findall(Timestamp, position(_,_,Timestamp), TimestampList);
+		.max(TimestampList, Max);
+		?position(X,Y,Max).
 
-+lastAction(no_action,TIME) <- !updatePosition(TIME).
++!updatePosition(success,move,[n],Time)
+<-	!getLastPosition(X,Y);
+		+position(X,Y-1,Time).
 
-+!handleLastActionResult(ACTION,TIME,LAR,connect,_) : LAR \== success
-    <-  !updatePosition(TIME);.fail.
++!updatePosition(success,move,[s],Time)
+<-	!getLastPosition(X,Y);
+		+position(X,Y+1,Time).
 
-+!handleLastActionResult(ACTION,TIME,success,rotate,[cw])
-    <-  !updateBlockCW;!updatePosition(TIME).
++!updatePosition(success,move,[e],Time)
+<-	!getLastPosition(X,Y);
+		+position(X+1,Y,Time).
 
-+!handleLastActionResult(ACTION,TIME,success,rotate,[ccw])
-    <-  !updateBlockCCW;!updatePosition(TIME).
-	
-+!handleLastActionResult(ACTION,TIME,failed,rotate,[ccw])
-    <-  !updatePosition(TIME);.fail.
-	
-+!updateBlockCW : hasBlock(n) <- -hasBlock(n);+hasBlock(e).
-+!updateBlockCW : hasBlock(e) <- -hasBlock(e);+hasBlock(s).
-+!updateBlockCW : hasBlock(s) <- -hasBlock(s);+hasBlock(w).
-+!updateBlockCW : hasBlock(w) <- -hasBlock(w);+hasBlock(n).
++!updatePosition(success,move,[w],Time)
+<-	!getLastPosition(X,Y);
+		+position(X-1,Y,Time).
 
-+!updateBlockCCW : hasBlock(n) <- -hasBlock(n);+hasBlock(w).
-+!updateBlockCCW : hasBlock(e) <- -hasBlock(e);+hasBlock(n).
-+!updateBlockCCW : hasBlock(s) <- -hasBlock(s);+hasBlock(e).
-+!updateBlockCCW : hasBlock(w) <- -hasBlock(w);+hasBlock(s).
-
-+!handleLastActionResult(ACTION,TIME,success,LACT,LAP)
-<-	!updatePosition(TIME).
++!updatePosition(_,_,_,Time)
+<-	!getLastPosition(X,Y);
+		+position(X,Y,Time).

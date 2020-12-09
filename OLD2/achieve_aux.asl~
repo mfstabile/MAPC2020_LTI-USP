@@ -6,19 +6,38 @@
 +?group(Ag,Reply,BlockTypeB) <- Reply = false.
 
 
-+achieve(Ag,XGoal,YGoal,BlockTypeB,Dir) : workingWith(Ag) & not .intend(achieve(_,_,_,_,_))
++!achieve(Ag,XGoal,YGoal,BlockTypeB,Dir) : workingWith(Ag) & not .intend(achieve(_,_,_,_,_))
 <-	.drop_all_intentions;
+.print("going to dispenser ",BlockTypeB);
 	!goTo(dispenser,BlockTypeB);
+.print("checkDispenser ",BlockTypeB);
 	!checkDispenser(BlockTypeB);
+.print("getBlock ",BlockTypeB);
 	!getBlock(BlockTypeB);
 	!goTo(XGoal,YGoal);
 	!rotateBlock(BlockTypeB,Dir);
-	//wait?
+	!waitLeader;
 	!connectBlock(Ag,BlockTypeB,Dir);
-	.
+	!detach(Dir);
+	.broadcast(untell,busy(Me));
+	!!explore.
 	
-+!connectBlock(Ag,BlockTypeB,Dir) : 
-<-	!performAction(connect(Ag,XDir,YDir)).
++!connectBlock(Ag,BlockTypeB,Dir) 
+<-	!getDir(Dir,XDir,YDir);
+	!performAction(connect(Ag,XDir,YDir)).
+	
+-!connectBlock(Ag,BlockTypeB,Dir) <- !connectBlock(Ag,BlockTypeB,Dir) .
+
++!waitLeader : team(TEAM) & thing(X,Y,entity,TEAM,_) & (X\==0|Y\==0) & .count(thing(X,Y,block,_,_),Blocks) & Blocks > 1<- true.
++!waitLeader <- !performAction(skip);!waitLeader.
+
++!getDir(s,XDir,YDir) <- XDir = 0;YDir = 1.
++!getDir(n,XDir,YDir) <- XDir = 0;YDir = -1.
++!getDir(e,XDir,YDir) <- XDir = 1;YDir = 0.
++!getDir(w,XDir,YDir) <- XDir = -1;YDir = 0.
+
++!detach(Dir) <- !performAction(detach(Dir));-hasBlock(_).
+
 /*
 +!achieve(XA,YA,XB,YB,B,XM,YM,M) : workingWith(M) & not .intend(achieve(XA,YA,XB,YB,B,XM,YM,M)) <-
 	

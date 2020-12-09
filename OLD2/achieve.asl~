@@ -1,4 +1,4 @@
-/*+!achieve <- 
++!achieve <- 
 	.findall(disp(X,Y),thing(X,Y,dispenser,B),Dispensers);
 	.shuffle(Dispensers,ShufDisp);
 	.nth(0,ShufDisp,disp(X,Y));
@@ -7,7 +7,7 @@
 	?thing(0,0,dispenser,_,_);
 	!performAction(skip);
 	!achieve.
-	*/
+	
 	
 +!achieve <-
 	!removeMoving;
@@ -48,19 +48,21 @@
 	.setof(g(((X-Xme)**2)+((Y-Yme)**2),X,Y),thing(X,Y,taskboard),L);
 	.min(L,g(D,XG,YG));
 	!goTo(XG,YG).
+	
 +!goTo(taskboard) : not position(me,Xme,Yme,_)<-
 	.wait("+position(me,_,_,_)");
 	!goTo(taskboard).
-+!goTo(taskboard) : not thing(_,_,taskboard)<-
++!goTo(taskboard) : not thing(TX,TY,taskboard)<-
 	//TODO: add fail state
 	.fail.
 
-+!checkTaskboard : position(me,Xme,Yme,T) & thing(0,0,taskboard,T) <- true.
-+!checkTaskboard : position(me,Xme,Yme,T) & not thing(0,0,taskboard,T) & thing(Xme,Yme,taskboard) <-
++!checkTaskboard : position(me,Xme,Yme,T) & thing(0,0,taskboard,_,T) <- true.
++!checkTaskboard : position(me,Xme,Yme,T) & not thing(0,0,taskboard,_,T) & thing(Xme,Yme,taskboard) <-
+	.print("removing taskboard");
 	-thing(Xme,Yme,taskboard);
 	!goTo(taskboard);
 	!checkTaskboard.
-+!checkTaskboard : position(me,Xme,Yme,T) & not thing(0,0,taskboard,T) <-
++!checkTaskboard : position(me,Xme,Yme,T) & not thing(0,0,taskboard,_,T) <-
 	!goTo(taskboard);
 	!checkTaskboard.	
 +!checkTaskboard : not position(me,Xme,Yme,_) <-
@@ -82,7 +84,11 @@
 		?taken(_,Req,Me);
 	}.
 
-+!selectAgent(I,BlockTypeB) : available(M) & mapper(M,_,_,_,_,_) & not busy(M) & not taken(_,_,M) <-
++?istaken(T,[req(XA,YA,A),req(XB,YB,B)],M) : taken(T,[req(0,1,A),req(XB,YB,B)],M) <- XA = 0;YA = 1.
++?istaken(T,[req(XA,YA,A),req(XB,YB,B)],M) : taken(T,[req(XB,YB,B),req(0,1,A)],M) <- XA = 0;YA = 1.
+
+	
++!selectAgent(I,BlockTypeB) : available(M) & mapper(M,_,_) & not busy(M) & not taken(_,_,M) <-
 		.my_name(Me);
 		.send(M,askOne,group(Me,Reply,BlockTypeB),group(Me,Reply,BlockTypeB));
 		if (Reply == true){
@@ -93,7 +99,6 @@
 			+busy(M);
 			!selectAgent(I,BlockTypeB);
 		}.
-
 +!selectAgent(I,BlockTypeB) <- .print("No agents available for selection.");!performAction(skip);!selectAgent(I,BlockTypeB).
 	
 +!getGoal(XG,YG) : position(me,Xme,Yme,_) <-
@@ -118,8 +123,8 @@
 +!goTo(dispenser,B) : position(me,Xme,Yme,_) & thing(_,_,dispenser,B) <-
 	.setof(g(((X-Xme)**2)+((Y-Yme)**2),X,Y),thing(X,Y,dispenser,B),L);
 	.min(L,g(_,XG,YG));
-	!goTo(XG,YG);
-	.print("Em cima do dispenser").
+.print("going to ",XG,":",YG);
+	!goTo(XG,YG).
 +!goTo(dispenser,B) : not position(me,Xme,Yme,_) <-
 	.wait("+position(me,_,_,_)");
 	!goTo(dispenser,B).
@@ -127,14 +132,12 @@
 	//TODO: add fail state
 	.fail.
 
-+!checkDispenser(A) : position(me,Xme,Yme,T) & thing(0,0,dispenser,A,T) <- true.
-+!checkDispenser(A) : position(me,Xme,Yme,T) & not thing(0,0,dispenser,A,T) & thing(0,0,dispenser,A) <-
-	-thing(Xme,Yme,taskboard);
-	!goTo(taskboard);
++!checkDispenser(A) : position(me,Xme,Yme,T) & thing(0,0,dispenser,A,T) <- .print("at dispenser").
++!checkDispenser(A) : position(me,Xme,Yme,T) & thing(Xme,Yme,dispenser,A) & not thing(0,0,dispenser,A,T) <-
+.print("removing wrong dispenser");
+	.abolish(thing(Xme,Yme,dispenser,A));
+	!goTo(dispenser,A);
 	!checkDispenser(A).
-+!checkDispenser(A) : position(me,Xme,Yme,T) & not thing(0,0,dispenser,A,T) <-
-	!goTo(taskboard);
-	!checkDispenser(A).	
 +!checkDispenser(A) : not position(me,Xme,Yme,_) <-
 	.wait("+position(me,_,_,_)");
 	!checkDispenser(A).
@@ -184,3 +187,11 @@
 
 +!connectBlock(1) : worker(M,1) & .my_name(Me) & taken(T,[req(XA,YA,A),req(XB,YB,B)],Me) <- !performAction(connect(M,XA,YA)).
 +!connectBlock(1) <- .print(" Error connecting block");.fail. //TODO: add fail state
+
++!handleLastActionResult(ACTION,TIME,success,accept,[N])
+    <- 	!updatePosition(TIME);.my_name(M);?task(N,_,_,R,_);.broadcast(tell,taken(N,R,M));+taken(N,R,M);.print("Accepted ",N).
+
++!handleLastActionResult(ACTION,TIME,success,submit,LAP)
+	<- 	.print("--------------------------------------------------------SCORE!");
+		!updatePosition(TIME);.my_name(M);?taken(N,R,M);.abolish(taken(_,_,M));.broadcast(untell,taken(N,R,M)).
+

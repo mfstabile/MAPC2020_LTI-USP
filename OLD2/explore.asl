@@ -4,10 +4,10 @@
 			thing(_,_,taskboard) & 
 			goal(_,_) & 
 			.count(mapper(_,_,_),Map) & Map > 3 &
-			.count(achieving(_),Tk) & Tk < 4
+			.count(achieving(_),Tk) & Tk < 5
 <- .print("achieving");
 	+achieving(Me);.broadcast(tell,achieving(Me))
-	!achieve. 
+	!achieve.
 			
 +!explore : not moving(_)
 <- 	.random(R);
@@ -27,7 +27,7 @@
 	
 +!explore :  moving(D) 
 <-	!randomChange;
-	!checkBlocked(0);
+	!checkBlocked(0);//TODO
 	?moving(ND);
 	!performAction(move(ND));
 	!explore.
