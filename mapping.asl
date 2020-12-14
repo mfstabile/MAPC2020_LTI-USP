@@ -20,6 +20,7 @@
       ?lastActionResult(ActionStatus,Time);
       ?lastAction(ActionType,Time);
       ?lastActionParams(ActionParams,Time);
+      !updateBlock(ActionStatus,ActionType,ActionParams,Time);
       !updatePosition(ActionStatus,ActionType,ActionParams,Time);
     };
     for(entity(XEntity,YEntity,XAg,YAg,Step-2)){
@@ -29,7 +30,6 @@
           YMapper = YSender - (YAg + YEntity);
           if(.count(mapper(Sender,_,_),0)){
             +mapper(Sender, XMapper, YMapper);
-            .print("Mapped - ", Sender);
             //Communicating dispensers
             for ( dispenser(XDispenser,YDispenser,DispType) ) {
       				.send(Sender,tell,dispenser(XDispenser+XMapper, YDispenser+YMapper, DispType));
