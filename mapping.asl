@@ -1,15 +1,23 @@
 ////////////////////////////////DETECTING AGENTS///////////////////////////////////////////
 +thing(XEntity,YEntity,entity,Team,Time) :
-  thing(0,0,entity,Team,Time) & position(XAg,YAg,Time)
-<-  ?step(Step,Time);
-    +entity(XEntity,YEntity,XAg,YAg,Step);
+  thing(0,0,entity,Team,Time) &
+  position(XAg,YAg,Time) &
+  .count(allAgentsMapped(_), MappedAgents) &
+  .count(.all_names(AllAgents),AgentAmount) &
+  MappedAgents<AgentAmount &
+  step(Step,Time)
+<-  +entity(XEntity,YEntity,XAg,YAg,Step);
     .my_name(MyName);
     .broadcast(tell,entityMessage(MyName,XEntity,YEntity,XAg,YAg,Step)).
 
 +thing(XEntity,YEntity,entity,Team,Time) :
-  thing(0,0,entity,Team,Time) & not position(XAg,YAg,Time)
+  thing(0,0,entity,Team,Time) &
+  not position(XAg,YAg,Time) &
+  .count(allAgentsMapped(_), MappedAgents) &
+  .count(.all_names(AllAgents),AgentAmount) &
+  MappedAgents<AgentAmount &
+  step(Step,Time)
 <-  .wait("+position(XAg,YAg,Time)");
-    ?step(Step,Time);
     +entity(XEntity,YEntity,XAg,YAg,Step);
     .my_name(MyName);
     .broadcast(tell,entityMessage(MyName,XEntity,YEntity,XAg,YAg,Step)).
@@ -20,6 +28,7 @@
       ?lastActionResult(ActionStatus,Time);
       ?lastAction(ActionType,Time);
       ?lastActionParams(ActionParams,Time);
+      !checkObstacle(Time);
       !updateBlock(ActionStatus,ActionType,ActionParams,Time);
       !updatePosition(ActionStatus,ActionType,ActionParams,Time);
     };
@@ -30,6 +39,14 @@
           YMapper = YSender - (YAg + YEntity);
           if(.count(mapper(Sender,_,_),0)){
             +mapper(Sender, XMapper, YMapper);
+
+            .count(.all_names(AllAgents),AgentAmount);
+            .count(mapper(AgentName, _, _), MappedAgents);
+            if (AgentAmount-1 == MappedAgents){
+              .my_name(MyName);
+              +allAgentsMapped(MyName);
+              .broadcast(tell,allAgentsMapped(MyName));
+            }
             //Communicating dispensers
             for ( dispenser(XDispenser,YDispenser,DispType) ) {
       				.send(Sender,tell,dispenser(XDispenser+XMapper, YDispenser+YMapper, DispType));
@@ -61,5 +78,6 @@
       .delete(0,2,TimeList,DeleteList);
       for (.member(Member,DeleteList)){
         .abolish(position(_,_,Member));
+        .abolish(obstacle(_,_,Member));
       }
     }.
