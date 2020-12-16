@@ -37,22 +37,50 @@ blockBlocked(w) :- carrying(Xblock,Yblock,T) &
 !startMovement.
 
 +!chooseDirection
-<- 	.random(Number);
-		if(Number <0.25 & not blocked(n)){
-			+direction(n);
-		}
-		elif(Number < 0.5 & not blocked(s)){
-			+direction(s);
-		}
-		elif(Number < 0.75 & not blocked(w)){
-			+direction(w);
-		}
-		elif(not blocked(e)){
-			+direction(e);
+<-
+		if (blocked(n)){
+			N = [];
 		}else{
-			!chooseDirection;
-		}.
+			N = [n];
+		}
+		if (blocked(s)){
+			S = [];
+		}else{
+			S = [s];
+		}
+		if (blocked(e)){
+			E = [];
+		}else{
+			E = [e];
+		}
+		if (blocked(w)){
+			W = [];
+		}else{
+			W = [w];
+		}
+		.concat(N,S,E,W,DirectionList);
+		.shuffle(DirectionList,ShuffledList);
+		.nth(0,ShuffledList,Direction);
+		+direction(Direction);
 
+		// .random(Number);
+		// if(Number <0.25 & not blocked(n)){
+		// 	+direction(n);
+		// }
+		// elif(Number < 0.5 & not blocked(s)){
+		// 	+direction(s);
+		// }
+		// elif(Number < 0.75 & not blocked(w)){
+		// 	+direction(w);
+		// }
+		// elif(not blocked(e)){
+		// 	+direction(e);
+		// }else{
+		// 	!chooseDirection;
+		// }
+		.
+
+-!chooseDirection <- !performAction(skip);!chooseDirection.
 
 +!startMovement
 <-	!chooseDirection;

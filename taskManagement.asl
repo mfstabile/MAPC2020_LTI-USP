@@ -16,26 +16,23 @@
 
 ///////////////////////////////////////////////////////////////////////////
 +!goToTaskboard
-<-  //.print("getLastPosition");
-    ?getLastPosition(MyX,MyY);
+<-  ?getLastPosition(MyX,MyY);
     .setof(g(((XTask-MyX)**2)+((YTask-MyY)**2),XTask,YTask),taskboard(XTask,YTask),TaskList);
     .min(TaskList,g(Dist,XNearTask,YNearTask));
     !goToPosition(XNearTask, YNearTask).
 
 ///////////////////////////////////////////////////////////////////////////
 +!getTask
-<-  //.print("getTask started");
-    .findall(IntTaskNumber,task(TaskName,_,_,_,_) & not acceptedTask(_,TaskName) & .delete("task",TaskName,TaskNumber) & .term2string(IntTaskNumber,TaskNumber),TaskNameList);
-    if(.empty(TaskList)){
+<-  .findall(IntTaskNumber,task(TaskName,_,_,_,_) & not acceptedTask(_,TaskName) & .delete("task",TaskName,TaskNumber) & .term2string(IntTaskNumber,TaskNumber),TaskNameList);
+    if(.empty(TaskNameList))
+    {
       !performAction(skip);
       !getTask;
     }
     else{
       .max(TaskNameList,MaxTaskNumber);
       .concat("task",MaxTaskNumber,MaxTask);
-      //.print("accepting task");
       !performAction(accept(MaxTask));
-      //.print("task accepted");
       .term2string(MaxTaskTerm,MaxTask);
       !verifyAccepted(MaxTaskTerm);
     }.
