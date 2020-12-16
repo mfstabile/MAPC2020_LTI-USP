@@ -28,7 +28,10 @@
       ?lastActionResult(ActionStatus,Time);
       ?lastAction(ActionType,Time);
       ?lastActionParams(ActionParams,Time);
-      !checkObstacle(Time);
+      if(not .setof(T,carrying(_,_,T),[])){
+          .print("checkObstacle")
+          !checkObstacle(Time);
+      }
       !updateBlock(ActionStatus,ActionType,ActionParams,Time);
       !updatePosition(ActionStatus,ActionType,ActionParams,Time);
     };

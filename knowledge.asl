@@ -35,14 +35,24 @@
     }.
 
 ////////////////////////////////ADDING GOAL///////////////////////////////////////////
-+goal(XGoal,YGoal,Time) : position(XAg,YAg,Time) & not goal(XGoal+XAg,YGoal+YAg)
++goal(XGoal,YGoal,Time) :
+    goal(XGoal+1,YGoal,Time) &
+    goal(XGoal-1,YGoal,Time) &
+    goal(XGoal,YGoal+1,Time) &
+    goal(XGoal,YGoal-1,Time) &
+    position(XAg,YAg,Time) & not goal(XGoal+XAg,YGoal+YAg)
 <-  +goal(XGoal+XAg,YGoal+YAg);
     for ( mapper(Sender, XMapper, YMapper) ) {
       .send(Sender,tell,goal(XGoal+XAg+XMapper, YGoal+YAg+YMapper));
     }
     .
 
-+goal(XGoal,YGoal,Time) : not position(XAg,YAg,Time)
++goal(XGoal,YGoal,Time) :
+    goal(XGoal+1,YGoal,Time) &
+    goal(XGoal-1,YGoal,Time) &
+    goal(XGoal,YGoal+1,Time) &
+    goal(XGoal,YGoal-1,Time) &
+    not position(XAg,YAg,Time)
 <-  .wait("+position(XAg,YAg,Time)");
     ?position(XAg,YAg,Time);
     if (.count(goal(XGoal+XAg,YGoal+YAg),0)){
