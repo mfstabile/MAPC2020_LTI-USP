@@ -5,6 +5,8 @@
 { include("moveWithBlock.asl") }
 { include("unblock.asl") }
 { include("obstacle.asl") }
+{ include("auxiliar.asl") }
+{ include("blockPosition.asl") }
 
 position(0,0,0).
 
@@ -61,24 +63,7 @@ blockBlocked(w) :- carrying(Xblock,Yblock,T) &
 		.concat(N,S,E,W,DirectionList);
 		.shuffle(DirectionList,ShuffledList);
 		.nth(0,ShuffledList,Direction);
-		+direction(Direction);
-
-		// .random(Number);
-		// if(Number <0.25 & not blocked(n)){
-		// 	+direction(n);
-		// }
-		// elif(Number < 0.5 & not blocked(s)){
-		// 	+direction(s);
-		// }
-		// elif(Number < 0.75 & not blocked(w)){
-		// 	+direction(w);
-		// }
-		// elif(not blocked(e)){
-		// 	+direction(e);
-		// }else{
-		// 	!chooseDirection;
-		// }
-		.
+		+direction(Direction).
 
 -!chooseDirection <- !performAction(skip);!chooseDirection.
 
@@ -92,27 +77,16 @@ blockBlocked(w) :- carrying(Xblock,Yblock,T) &
 				 taskboard(_,_) &
 				 goal(_,_) &
 				 .count(taskowner(Owner),TaskOwnerAmount) &
-				 .count(.all_names(AllAgents),AgentAmount) &
-				 TaskOwnerAmount < (AgentAmount/3) &
-				 .count(mapper(AgentName, _, _) & not taskowner(AgentName) & not auxiliar(AgentName), AvailableAgents) &
-				 AvailableAgents > 2
-<-		.my_name(MyName);
-			+taskowner(MyName);
+         .all_names(AllAgents) &
+				 .length(AllAgents,AgentAmount) &
+				 TaskOwnerAmount < 1 &//(AgentAmount/3) &
+				 .count(mapper(AgentName, _, _) & not taskowner(AgentName) & not auxiliar(AgentName,_), AvailableAgents) &
+				 AvailableAgents > 2 &
+         .my_name(MyName) &
+         not auxiliar(MyName,_)
+<-    +taskowner(MyName);
 			.broadcast(tell, taskowner(MyName));
 			!!achieveTask.
-
-// +!randomWalk : dispenser(_,_,b0) &
-// 				 dispenser(_,_,b1) &
-// 				 dispenser(_,_,b2) &
-// 				 taskboard(_,_) &
-// 				 goal(_,_) &
-// 				 .count(taskowner(Owner),TaskOwnerAmount) &
-// 				 .count(.all_names(AllAgents),AgentAmount) &
-// 				 .count(mapper(AgentName, _, _) & not taskowner(AgentName) & not auxiliar(AgentName), AvailableAgents)
-// <-		.my_name(MyName);
-// 			+taskowner(MyName);
-// 			.broadcast(tell, taskowner(MyName));
-// 			!!achieveTask.
 
 +!randomWalk
 <-	.random(Number);

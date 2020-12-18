@@ -29,7 +29,6 @@
       ?lastAction(ActionType,Time);
       ?lastActionParams(ActionParams,Time);
       if(not .setof(T,carrying(_,_,T),[])){
-          .print("checkObstacle")
           !checkObstacle(Time);
       }
       !updateBlock(ActionStatus,ActionType,ActionParams,Time);

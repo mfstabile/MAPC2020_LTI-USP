@@ -17,6 +17,11 @@
     {"name": "agentA7", "username": "agentA7", "password": "1", "print-iilang": false, "print-json": false},
     {"name": "agentA8", "username": "agentA8", "password": "1", "print-iilang": false, "print-json": false},
     {"name": "agentA9", "username": "agentA9", "password": "1", "print-iilang": false, "print-json": false},
-    {"name": "agentA10", "username": "agentA10", "password": "1", "print-iilang": false, "print-json": false}
+    {"name": "agentA10", "username": "agentA10", "password": "1", "print-iilang": false, "print-json": false},
+    {"name": "agentA11", "username": "agentA11", "password": "1", "print-iilang": false, "print-json": false},
+    {"name": "agentA12", "username": "agentA12", "password": "1", "print-iilang": false, "print-json": false},
+    {"name": "agentA13", "username": "agentA13", "password": "1", "print-iilang": false, "print-json": false},
+    {"name": "agentA14", "username": "agentA14", "password": "1", "print-iilang": false, "print-json": false},
+    {"name": "agentA15", "username": "agentA15", "password": "1", "print-iilang": false, "print-json": false}
   ]
 }

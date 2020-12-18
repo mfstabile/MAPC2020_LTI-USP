@@ -2,15 +2,43 @@
 <-  .print("Achieving");
     !goToTaskboard;
     !getTask;
-    !goToDispenser;
+    ?accepted(TaskName,_);
+    ?task(TaskName,_,_,Requirements,_);
+    .length(Requirements, RequirementsSize);
+    !executeTask(RequirementsSize).
+
++!executeTask(1)
+<-  !goToDispenser(1);
     !getBlock;
     !goToGoal;
-    !setupBlock;
+    !setupBlock(s);
     !checkGoalPosition;
     !submitTask;
-    // !achieveTask.
-    //!performAction(move(e));
-    !skip.
+    .abolish(carrying(_,_,_));
+    !!achieveTask.
+
++!executeTask(2)
+<-  !chooseGoal(XGoal,YGoal);
+    !chooseAgent;
+    !setAvailableRequirements;
+    .my_name(MyName);
+    ?auxiliar(AuxiliarAgentName,MyName);
+    !sendInstructions(AuxiliarAgentName, XGoal, YGoal);
+    !getOwnerBlockType(BlockType);
+    !goToDispenser(BlockType);
+    !getBlock;
+    !carryBlock(XGoal,YGoal);
+    !setupBlock(s);
+    !checkAuxiliarArea;
+    !waitAuxiliar;
+    !checkSetup;
+    !connect;
+    !submitTask;
+    .abolish(carrying(_,_,_));
+    .print("Deveria ter entregue a task");
+    !clearSubmittedInformation;
+    !!achieveTask;
+.
 
 +!skip <- !performAction(skip);!skip.
 
@@ -45,17 +73,35 @@
 +!verifyAccepted(MaxTask) <- !getTask.
 
 ///////////////////////////////////////////////////////////////////////////
-+!goToDispenser : accepted(TaskName,_) & task(TaskName,_,_,[req(0,1,DispType)],_)
++!goToDispenser(1) : accepted(TaskName,_) & task(TaskName,_,_,[req(0,1,DispType)],_)
 <-  ?getLastPosition(MyX,MyY);
     .setof(g(((XDisp-MyX)**2)+((YDisp-MyY)**2),XDisp,YDisp),dispenser(XDisp,YDisp,DispType),DispList);
     .min(DispList,g(Dist,XNearDisp,YNearDisp));
     !goToPosition(XNearDisp, YNearDisp).
 
 ///////////////////////////////////////////////////////////////////////////
++!goToDispenser(BlockType) : dispenser(_,_,BlockType)
+<-  ?getLastPosition(MyX,MyY);
+    .setof(g(((XDisp-MyX)**2)+((YDisp-MyY)**2),XDisp,YDisp),dispenser(XDisp,YDisp,BlockType),DispList);
+    .min(DispList,g(Dist,XNearDisp,YNearDisp));
+    !goToPosition(XNearDisp, YNearDisp).
+
++!goToDispenser(BlockType)
+<-  .my_name(MyName);
+    ?auxiliar(MyName,TaskOwnerName);
+    .send(TaskOwnerName,askOne,dispenser(XDispenser,YDispenser,BlockType));
+    ?mapper(TaskOwnerName,XMapper,YMapper);
+    +dispenser(XDispenser-XMapper,YDispenser-YMapper,BlockType);
+    !goToPosition(XDispenser-XMapper,YDispenser-YMapper).
+
+///////////////////////////////////////////////////////////////////////////
 +!getBlock
-<-  !shift(Direction);
-    !requestBlock(Direction);
-    !attachBlock(Direction).
+<-  ?checkDeadline(Active);
+    if(Active){
+      !shift(Direction);
+      !requestBlock(Direction);
+      !attachBlock(Direction);
+    }.
 
 +!shift(Direction) :  not blocked(s) <- !performAction(move(s)); ?thing(0,-1,dispenser,_,_); Direction = n.
 +!shift(Direction) :  not blocked(n) <- !performAction(move(n)); ?thing(0,1,dispenser,_,_); Direction = s.
@@ -80,65 +126,254 @@
 
 ///////////////////////////////////////////////////////////////////////////
 +!goToGoal
+<-  ?checkDeadline(Active);
+    ?hasBlock(HasBlock);
+    if(Active & HasBlock){
+      ?getLastPosition(MyX,MyY);
+      .setof(g(((XGoal-MyX)**2)+((YGoal-MyY)**2),XGoal,YGoal),goal(XGoal,YGoal),GoalList);
+      .min(GoalList,g(Dist,XNearGoal,YNearGoal));
+      !carryBlock(XNearGoal,YNearGoal);
+    }.
+///////////////////////////////////////////////////////////////////////////
++!chooseGoal(XNearGoal,YNearGoal)
 <-  ?getLastPosition(MyX,MyY);
     .setof(g(((XGoal-MyX)**2)+((YGoal-MyY)**2),XGoal,YGoal),goal(XGoal,YGoal),GoalList);
-    .min(GoalList,g(Dist,XNearGoal,YNearGoal));
-    !carryBlock(XNearGoal,YNearGoal).
-///////////////////////////////////////////////////////////////////////////
-//block south
-+!setupBlock : carrying(0,1,_) <- true.
-//block north
-+!setupBlock : carrying(0,-1,_) & not blocked(e)
-<-  !performAction(rotate(cw));
-    .wait("+carrying(_,_,Time)",20);
-    ?carrying(1,0,_);
-    !setupBlock.
-+!setupBlock : carrying(0,-1,_) & not blocked(w)
-<-  !performAction(rotate(ccw));
-    .wait("+carrying(_,_,Time)",20);
-    ?carrying(-1,0,_);
-    !setupBlock.
-
-+!setupBlock : carrying(0,-1,_) & not blockBlocked(n) <- !performAction(move(n));!setupBlock;!performAction(move(s)).
-+!setupBlock : carrying(0,-1,_) & not blockBlocked(n) <- !performAction(move(n));!setupBlock;!performAction(move(s)).
-
-+!setupBlock : carrying(0,-1,_) & not blocked(s) <- !performAction(move(s));!setupBlock;!performAction(move(n)).
-
-+!setupBlock : carrying(0,-1,_) <- !performAction(skip);!setupBlock.
-//block east
-+!setupBlock : carrying(1,0,_) & not blocked(s)
-<-  !performAction(rotate(cw));
-    .wait("+carrying(_,_,Time)",20);
-    ?carrying(0,1,_);
-    !setupBlock.
-
-+!setupBlock : carrying(1,0,_) & not blocked(n) & not blockBlocked(n) <- !performAction(move(n));!setupBlock;!performAction(move(s)).
-
-//block west
-+!setupBlock : carrying(-1,0,_) & not blocked(s)
-<-  !performAction(rotate(ccw));
-    .wait("+carrying(_,_,Time)",20);
-    ?carrying(0,1,_);
-    !setupBlock.
-
-+!setupBlock : carrying(-1,0,_) & not blocked(n) & not blockBlocked(n) <- !performAction(move(n));!setupBlock;!performAction(move(s)).
-//fail recover
-
--!setupBlock <- !setupBlock.
-
+    .min(GoalList,g(Dist,XNearGoal,YNearGoal)).
 
 ///////////////////////////////////////////////////////////////////////////
 
 +!checkGoalPosition : goal(0,0,_) <- true.
 +!checkGoalPosition
-<-  !goToGoal;
-    !setupBlock;
-    !checkGoalPosition.
+<-  ?checkDeadline(Active);
+    ?hasBlock(HasBlock);
+    if(Active & HasBlock){
+      !goToGoal;
+      !setupBlock(s);
+      !checkGoalPosition;
+    }.
 ///////////////////////////////////////////////////////////////////////////
-//verificar deadline
-//verificar se está com bloco
 +!submitTask : accepted(TaskName,_) & task(TaskName,_,_,_,_)
-<-  !performAction(submit(TaskName));
-    .count(task(TaskName,_,_,_,_), 0).
+<-  ?checkDeadline(Active);
+    ?hasBlock(HasBlock);
+    if(Active & HasBlock){
+      !performAction(submit(TaskName));
+      .count(task(TaskName,_,_,_,_), 0);
+      .print("Task submitted ",TaskName);
+    }else{
+      .print("submit failed ", Active, HasBlock);
+    }.
 
 -!submitTask <- !submitTask.
+
+///////////////////////////////////////////////////////////////////////////
++!clearBlock : not thing(0,1,block,_,_) <- true.
++!clearBlock : thing(X,Y,entity,_,_) & (X\==0 | Y\==0) <- !moveToEmptySpace;!clearBlock.
++!clearBlock : thing(0,1,block,_,_) <- !performAction(clear(1,1));!clearBlock.
+
++!moveToEmptySpace
+<- .random(Number);
+    if(Number <0.25){
+    	!performAction(move(n));
+    }
+    elif(Number < 0.5){
+    	!performAction(move(s));
+    }
+    elif(Number < 0.75){
+    	!performAction(move(w));
+    }
+    else {
+    	!performAction(move(e));
+    }.
+
++?checkDeadline(Answer) : accepted(TaskName,_) & task(TaskName,Deadline,_,_,_) & step(Step, _) & Step > Deadline & carrying(_,_,_)
+<-  .print("Entrando no check deadline");
+    !setupBlock(s);
+    .print("Bloco deveria estar no sul");
+    !clearBlock;
+    .print("Deveria ter apagado bloco");
+    .abolish(carrying(_,_,_));
+    .print("Deadline 3");
+    Answer = false.
+
++?checkDeadline(Answer) : accepted(TaskName,_) & not task(TaskName,_,_,_,_) & carrying(_,_,_)
+<-  !setupBlock(s);
+    !performAction(detach(s));
+    !clearBlock;
+    .abolish(carrying(_,_,_));
+    .print("Deadline 4");
+    Answer = false.
+
++?checkDeadline(Answer) : accepted(TaskName,_) & task(TaskName,Deadline,_,_,_) & step(Step, _) & Step > Deadline <- .print("Deadline 1");Answer = false.
++?checkDeadline(Answer) : accepted(TaskName,_) & not task(TaskName,Deadline,_,_,_) & step(Step, _) <- .print("Deadline 2");Answer = false.
++?checkDeadline(Answer) : accepted(TaskName,_) & task(TaskName,Deadline,_,_,_) & step(Step, _) <- Answer = true.
+
++?hasBlock(Answer) : step(_,Time) & not carrying(_,_,Time) <- .wait("+carrying(_,_,Time)",10);?hasBlock(Answer).
++?hasBlock(Answer) : carrying(XBlock,YBlock,Time) & thing(XBlock,YBlock,block,_,Time) <- Answer = true.
++?hasBlock(Answer) : carrying(XBlock,YBlock,Time) & not thing(XBlock,YBlock,block,_,Time) <- Answer = false.
++?hasBlock(Answer) <- Answer = false.
+
+///////////////////////////////////////////////////////////////////////////
++!chooseAgent
+<-  .findall(AgentName, mapper(AgentName,_,_), AllAgents);
+.print("1");
+    .findall(AgentName, taskowner(AgentName) | auxiliar(AgentName,_), BusyAgentList);
+.print("2");
+    .difference(AllAgents,BusyAgentList,AvailableAgents);
+.print("3");
+    if(.empty(AvailableAgents)){
+      .print("4");
+      !performAction(skip);
+      !chooseAgent;
+    }
+    else{
+      .print("5");
+      .nth(0,AvailableAgents,AuxiliarAgent);
+      .my_name(MyName);
+      .send(AuxiliarAgent,askOne,canAssist(MyName,Answer),canAssist(MyName, Answer));
+      if(not Answer){
+        .print("6");
+        !chooseAgent;
+      }
+      .print("7");
+    }.
+
+///////////////////////////////////////////////////////////////////////////
++!setAvailableRequirements
+<-  ?accepted(TaskName,_);
+    ?task(TaskName,_,_,Requirements,_);
+    .delete(req(0,1,_),Requirements,RemainingRequirements);
+    +requirementAvailable(RemainingRequirements).
+///////////////////////////////////////////////////////////////////////////
++!sendInstructions(AuxiliarAgentName, XGoal, YGoal)
+<-  ?requirementAvailable(AvailableRequirements);
+    .nth(0,AvailableRequirements, req(XBlock,YBlock,BlockType));
+    .delete(req(XBlock,YBlock,BlockType),AvailableRequirements,RemainingRequirements);
+    .abolish(requirementAvailable(AvailableRequirements));
+    if(not .empty(RemainingRequirements)){
+      +requirementAvailable(RemainingRequirements);
+    };
+    ?mapper(AuxiliarAgentName,XMapper,YMapper);
+    if(XBlock == 0){
+      XAgentPosition = XGoal+XBlock+XMapper-1;
+      YAgentPosition = YGoal+YBlock+YMapper;
+      Direction = e;
+    }else{
+      XAgentPosition = XGoal+XBlock+XMapper;
+      YAgentPosition = YGoal+YBlock+YMapper-1;
+      Direction = s;
+    }
+    .send(AuxiliarAgentName,unachieve,startMovement);
+    .send(AuxiliarAgentName,achieve,goAssist(XAgentPosition,YAgentPosition,BlockType,Direction));
+    +auxiliarPosition(AuxiliarAgentName,XAgentPosition,YAgentPosition,Direction,BlockType).
+
+///////////////////////////////////////////////////////////////////////////
+
++!getOwnerBlockType(BlockType)
+<-  ?accepted(TaskName,_);
+    ?task(TaskName,_,_,Requirements,_);
+    .findall(BType, .member(req(0,1,BType),Requirements), BTypeList);
+    .nth(0,BTypeList,BlockType).
+
+///////////////////////////////////////////////////////////////////////////
++!waitAuxiliar : .my_name(MyName) & auxiliar(Auxiliar1,MyName) & auxiliar(Auxiliar2,MyName) & Auxiliar1 \== Auxiliar2
+<-  ?readyToConnect(Auxiliar1);
+    ?readyToConnect(Auxiliar2).
+
++!waitAuxiliar : .my_name(MyName) & auxiliar(Auxiliar1,MyName)
+<-  ?readyToConnect(Auxiliar1).
+
+-!waitAuxiliar <- !performAction(skip);!waitAuxiliar.
+///////////////////////////////////////////////////////////////////////////
++!checkSetup: accepted(TaskName,_) & task(TaskName,_,_,Requirements,_)
+<-  for ( .member(req(XBlock,YBlock,BlockType),Requirements) ) {         // iteration
+      ?thing(XBlock,YBlock,block,BlockType,_);
+    };
+    .
+
+-!checkSetup <- !fixSetup.
+///////////////////////////////////////////////////////////////////////////
++!fixSetup : auxiliarPosition(AuxiliarAgentName1,XAgentPosition1,YAgentPosition1,Direction1,BlockType) &
+             auxiliarPosition(AuxiliarAgentName2,XAgentPosition2,YAgentPosition2,Direction2,BlockType) &
+             AuxiliarAgentName1 \== AuxiliarAgentName2
+<-  .my_name(MyName);
+    .abolish(readyToConnect(_));
+    .send(AuxiliarAgentName1,unachieve, skip);
+    .send(AuxiliarAgentName2,unachieve, skip);
+    .send(AuxiliarAgentName1,achieve,fixAuxiliarSetup(XAgentPosition1,YAgentPosition1,Direction1,MyName,BlockType));
+    .send(AuxiliarAgentName2,achieve,fixAuxiliarSetup(XAgentPosition2,YAgentPosition2,Direction2,MyName,BlockType));
+    !waitAuxiliar;
+    .
+
++!fixSetup : auxiliarPosition(AuxiliarAgentName,XAgentPosition,YAgentPosition,Direction,BlockType)
+<-  .my_name(MyName);
+    .abolish(readyToConnect(_));
+    .send(AuxiliarAgentName,unachieve, skip);
+    .send(AuxiliarAgentName,achieve,fixAuxiliarSetup(XAgentPosition,YAgentPosition,Direction,MyName,BlockType));
+    !waitAuxiliar;
+    .
+///////////////////////////////////////////////////////////////////////////
++!connect : .my_name(MyName) & auxiliar(Auxiliar,MyName)
+<-  .send(Auxiliar,unachieve, skip);
+    .send(Auxiliar,achieve,connectAuxiliar);
+    !connectOwner(Auxiliar).
+
++!connectOwner(Auxiliar)
+<-  !performAction(connect(Auxiliar,0,1));
+    ?lastActionResult(success,Time);
+    ?lastAction(connect,Time).
+
+-!connectOwner(Auxiliar)<-!connectOwner(Auxiliar).
+
+///////////////////////////////////////////////////////////////////////////
++!checkAuxiliarArea : accepted(TaskName,_) &
+                      task(TaskName,_,_,Requirements,_) &
+                      auxiliarPosition(AuxiliarAgentName,XAgentPosition,YAgentPosition,Direction,BlockType) &
+                      mapper(AuxiliarAgentName,XMapper,YMapper)
+<-  .delete(req(0,1,_),Requirements,[req(XBlock,YBlock,_)]);
+    .count(obstacle(XBlock,YBlock,_), BlockObstacle);
+    ?getLastPosition(MyX,MyY);
+    XAuxiliar = XAgentPosition - XMapper - MyX;
+    YAuxiliar = YAgentPosition - YMapper - MyY;
+    .count(obstacle(XAuxiliar,YAuxiliar,_), AuxiliarObstacle);
+    if(BlockObstacle>0 | AuxiliarObstacle > 0){
+        .print("Goal Area is blocked");
+        +goalChanged;
+        !fixSubmitPosition;
+        !checkAuxiliarArea;
+    }elif(.count(goalChanged,Changed) & Changed > 0){
+        .print("Goal Area unblocked successfully");
+        .send(AuxiliarAgentName,unachieve, goAssist(_,_,_,_));
+        .my_name(MyName);
+        if(XBlock == 0){
+          XAgentPositionNew = MyX+XBlock+XMapper-1;
+          YAgentPositionNew = MyY+YBlock+YMapper;
+          DirectionNew = e;
+        }else{
+          XAgentPositionNew = MyX+XBlock+XMapper;
+          YAgentPositionNew = MyY+YBlock+YMapper-1;
+          DirectionNew = s;
+        }
+        .abolish(auxiliarPosition(AuxiliarAgentName,_,_,_,_));
+        +auxiliarPosition(AuxiliarAgentName,XAgentPositionNew,YAgentPositionNew,DirectionNew,BlockType);
+        .send(AuxiliarAgentName,achieve,fixAuxiliarSetup(XAgentPositionNew,YAgentPositionNew,DirectionNew,MyName,BlockType));
+    }.
+
++!fixSubmitPosition : goal(0,-1,Time)
+<-  !performAction(move(n)).
+
++!fixSubmitPosition : goal(1,0,Time)
+<-  !performAction(move(e)).
+
++!fixSubmitPosition : goal(-1,0,Time)
+<-  !performAction(move(w)).
+
++!fixSubmitPosition : goal(0,1,Time)
+<-  !performAction(move(w)).
+
+///////////////////////////////////////////////////////////////////////////
++!clearSubmittedInformation
+<-  .abolish(auxiliarPosition(_,_,_,_,_));
+    .abolish(goalChanged);
+    .my_name(MyName);
+    .broadcast(untell,acceptedTask(MyName, _));
+    .abolish(readyToConnect(_)).
