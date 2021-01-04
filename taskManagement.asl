@@ -5,7 +5,8 @@
     ?accepted(TaskName,_);
     ?task(TaskName,_,_,Requirements,_);
     .length(Requirements, RequirementsSize);
-    !executeTask(RequirementsSize).
+    !executeTask(RequirementsSize);
+    .print("Task Achieved").
 
 +!executeTask(1)
 <-  !goToDispenser(1);
@@ -27,9 +28,13 @@
     !getOwnerBlockType(BlockType);
     !goToDispenser(BlockType);
     !getBlock;
-    !carryBlock(XGoal,YGoal);
+    .abolish(carryBlockTo(_,_));
+    +carryBlockTo(XGoal,YGoal);
+    !carryBlock;
     !setupBlock(s);
-    !checkAuxiliarArea;
+    !checkObstacleAuxiliarArea;
+    .send(AuxiliarAgentName,tell,ownerPositioned);
+    // !checkThingAuxiliarArea;
     !waitAuxiliar;
     !checkSetup;
     !connect;
@@ -132,7 +137,9 @@
       ?getLastPosition(MyX,MyY);
       .setof(g(((XGoal-MyX)**2)+((YGoal-MyY)**2),XGoal,YGoal),goal(XGoal,YGoal),GoalList);
       .min(GoalList,g(Dist,XNearGoal,YNearGoal));
-      !carryBlock(XNearGoal,YNearGoal);
+      .abolish(carryBlockTo(_,_));
+      +carryBlockTo(XNearGoal,YNearGoal);
+      !carryBlock;
     }.
 ///////////////////////////////////////////////////////////////////////////
 +!chooseGoal(XNearGoal,YNearGoal)
@@ -162,6 +169,11 @@
     }else{
       .print("submit failed ", Active, HasBlock);
     }.
+
++!submitTask
+<-  ?checkDeadline(Active);
+    ?hasBlock(HasBlock);
+    .
 
 -!submitTask <- !submitTask.
 
@@ -207,7 +219,7 @@
 +?checkDeadline(Answer) : accepted(TaskName,_) & not task(TaskName,Deadline,_,_,_) & step(Step, _) <- .print("Deadline 2");Answer = false.
 +?checkDeadline(Answer) : accepted(TaskName,_) & task(TaskName,Deadline,_,_,_) & step(Step, _) <- Answer = true.
 
-+?hasBlock(Answer) : step(_,Time) & not carrying(_,_,Time) <- .wait("+carrying(_,_,Time)",10);?hasBlock(Answer).
++?hasBlock(Answer) : step(_,Time) & not carrying(_,_,Time) <- .wait("+carrying(_,_,Time)",10,Arg);?hasBlock(Answer).
 +?hasBlock(Answer) : carrying(XBlock,YBlock,Time) & thing(XBlock,YBlock,block,_,Time) <- Answer = true.
 +?hasBlock(Answer) : carrying(XBlock,YBlock,Time) & not thing(XBlock,YBlock,block,_,Time) <- Answer = false.
 +?hasBlock(Answer) <- Answer = false.
@@ -215,26 +227,19 @@
 ///////////////////////////////////////////////////////////////////////////
 +!chooseAgent
 <-  .findall(AgentName, mapper(AgentName,_,_), AllAgents);
-.print("1");
     .findall(AgentName, taskowner(AgentName) | auxiliar(AgentName,_), BusyAgentList);
-.print("2");
     .difference(AllAgents,BusyAgentList,AvailableAgents);
-.print("3");
     if(.empty(AvailableAgents)){
-      .print("4");
       !performAction(skip);
       !chooseAgent;
     }
     else{
-      .print("5");
       .nth(0,AvailableAgents,AuxiliarAgent);
       .my_name(MyName);
       .send(AuxiliarAgent,askOne,canAssist(MyName,Answer),canAssist(MyName, Answer));
       if(not Answer){
-        .print("6");
         !chooseAgent;
       }
-      .print("7");
     }.
 
 ///////////////////////////////////////////////////////////////////////////
@@ -325,7 +330,7 @@
 -!connectOwner(Auxiliar)<-!connectOwner(Auxiliar).
 
 ///////////////////////////////////////////////////////////////////////////
-+!checkAuxiliarArea : accepted(TaskName,_) &
++!checkObstacleAuxiliarArea : accepted(TaskName,_) &
                       task(TaskName,_,_,Requirements,_) &
                       auxiliarPosition(AuxiliarAgentName,XAgentPosition,YAgentPosition,Direction,BlockType) &
                       mapper(AuxiliarAgentName,XMapper,YMapper)
@@ -339,10 +344,11 @@
         .print("Goal Area is blocked");
         +goalChanged;
         !fixSubmitPosition;
-        !checkAuxiliarArea;
+        !checkObstacleAuxiliarArea;
     }elif(.count(goalChanged,Changed) & Changed > 0){
         .print("Goal Area unblocked successfully");
         .send(AuxiliarAgentName,unachieve, goAssist(_,_,_,_));
+        .send(AuxiliarAgentName,unachieve, fixAuxiliarSetup(_,_,_,_,_));
         .my_name(MyName);
         if(XBlock == 0){
           XAgentPositionNew = MyX+XBlock+XMapper-1;
@@ -369,6 +375,41 @@
 
 +!fixSubmitPosition : goal(0,1,Time)
 <-  !performAction(move(w)).
+
+///////////////////////////////////////////////////////////////////////////
+
++!checkThingAuxiliarArea : accepted(TaskName,_) &
+                      task(TaskName,_,_,Requirements,_) &
+                      auxiliarPosition(AuxiliarAgentName,XAgentPosition,YAgentPosition,Direction,BlockType) &
+                      mapper(AuxiliarAgentName,XMapper,YMapper)
+<-  .delete(req(0,1,_),Requirements,[req(XBlock,YBlock,_)]);
+    .count(obstacle(XBlock,YBlock,_), BlockObstacle);
+    ?getLastPosition(MyX,MyY);
+    XAuxiliar = XAgentPosition - XMapper - MyX;
+    YAuxiliar = YAgentPosition - YMapper - MyY;
+    .count(obstacle(XAuxiliar,YAuxiliar,_), AuxiliarObstacle);
+    if(BlockObstacle>0 | AuxiliarObstacle > 0){
+        .print("Goal Area is blocked");
+        +goalChanged;
+        !fixSubmitPosition;
+        !checkObstacleAuxiliarArea;
+    }elif(.count(goalChanged,Changed) & Changed > 0){
+        .print("Goal Area unblocked successfully");
+        .send(AuxiliarAgentName,unachieve, goAssist(_,_,_,_));
+        .my_name(MyName);
+        if(XBlock == 0){
+          XAgentPositionNew = MyX+XBlock+XMapper-1;
+          YAgentPositionNew = MyY+YBlock+YMapper;
+          DirectionNew = e;
+        }else{
+          XAgentPositionNew = MyX+XBlock+XMapper;
+          YAgentPositionNew = MyY+YBlock+YMapper-1;
+          DirectionNew = s;
+        }
+        .abolish(auxiliarPosition(AuxiliarAgentName,_,_,_,_));
+        +auxiliarPosition(AuxiliarAgentName,XAgentPositionNew,YAgentPositionNew,DirectionNew,BlockType);
+        .send(AuxiliarAgentName,achieve,fixAuxiliarSetup(XAgentPositionNew,YAgentPositionNew,DirectionNew,MyName,BlockType));
+    }.
 
 ///////////////////////////////////////////////////////////////////////////
 +!clearSubmittedInformation

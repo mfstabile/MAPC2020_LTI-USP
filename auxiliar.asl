@@ -14,7 +14,9 @@
     ?auxiliar(MyName,TaskOwnerName);
     ?acceptedTask(TaskOwnerName, TaskName);
     ?task(TaskName,_,_,Requirements,_);
-    !carryBlock(XAgentPosition,YAgentPosition);
+    .abolish(carryBlockTo(_,_));
+    +carryBlockTo(XAgentPosition,YAgentPosition);
+    !carryBlock;
     !setupBlock(BlockDirection);
     .send(TaskOwnerName,tell,readyToConnect(MyName));
     !skip.
@@ -28,7 +30,7 @@
     .print("Deveria ter apagado bloco");
     .abolish(carrying(_,_,_));
     .print("Deadline 3");
-    .abolish(auxiliar(MyName,TaskOwnerName));
+    -ownerPositioned;.abolish(auxiliar(MyName,TaskOwnerName));
     .broadcast(untell,auxiliar(MyName,TaskOwnerName));
     Answer = false.
 
@@ -38,16 +40,18 @@
     !clearBlock;
     .abolish(carrying(_,_,_));
     .print("Deadline 4");
-    .abolish(auxiliar(MyName,TaskOwnerName));
+    -ownerPositioned;.abolish(auxiliar(MyName,TaskOwnerName));
     .broadcast(untell,auxiliar(MyName,TaskOwnerName));
     Answer = false.
 
-+?checkDeadline(Answer) : .my_name(MyName) & auxiliar(MyName,TaskOwnerName) & acceptedTask(TaskOwnerName, TaskName) & task(TaskName,Deadline,_,_,_) & step(Step, _) & Step > Deadline <- .print("Deadline 1");.abolish(auxiliar(MyName,TaskOwnerName));.broadcast(untell,auxiliar(MyName,TaskOwnerName));Answer = false.
-+?checkDeadline(Answer) : .my_name(MyName) & auxiliar(MyName,TaskOwnerName) & acceptedTask(TaskOwnerName, TaskName) & not task(TaskName,Deadline,_,_,_) & step(Step, _) <- .print("Deadline 2");.abolish(auxiliar(MyName,TaskOwnerName));.broadcast(untell,auxiliar(MyName,TaskOwnerName));Answer = false.
++?checkDeadline(Answer) : .my_name(MyName) & auxiliar(MyName,TaskOwnerName) & acceptedTask(TaskOwnerName, TaskName) & task(TaskName,Deadline,_,_,_) & step(Step, _) & Step > Deadline <- .print("Deadline 1");-ownerPositioned;.abolish(auxiliar(MyName,TaskOwnerName));.broadcast(untell,auxiliar(MyName,TaskOwnerName));Answer = false.
++?checkDeadline(Answer) : .my_name(MyName) & auxiliar(MyName,TaskOwnerName) & acceptedTask(TaskOwnerName, TaskName) & not task(TaskName,Deadline,_,_,_) & step(Step, _) <- .print("Deadline 2");-ownerPositioned;.abolish(auxiliar(MyName,TaskOwnerName));.broadcast(untell,auxiliar(MyName,TaskOwnerName));Answer = false.
 +?checkDeadline(Answer) : .my_name(MyName) & auxiliar(MyName,TaskOwnerName) & acceptedTask(TaskOwnerName, TaskName) & task(TaskName,Deadline,_,_,_) & step(Step, _) <- Answer = true.
 ///////////////////////////////////////////////////////////////////////////
 +!fixAuxiliarSetup(XAgentPosition,YAgentPosition,BlockDirection,TaskOwnerName,BlockType) : carrying(_,_,_)
-<-  !carryBlock(XAgentPosition,YAgentPosition);
+<-  .abolish(carryBlockTo(_,_));
+    +carryBlockTo(XAgentPosition,YAgentPosition);
+    !carryBlock;
     !setupBlock(BlockDirection);
     .my_name(MyName);
     .send(TaskOwnerName,tell,readyToConnect(MyName));
@@ -56,7 +60,9 @@
 +!fixAuxiliarSetup(XAgentPosition,YAgentPosition,BlockDirection,TaskOwnerName,BlockType) : not carrying(_,_,_)
 <-  !goToDispenser(BlockType);
     !getBlock;
-    !carryBlock(XAgentPosition,YAgentPosition);
+    .abolish(carryBlockTo(_,_));
+    +carryBlockTo(XAgentPosition,YAgentPosition);
+    !carryBlock;
     !setupBlock(BlockDirection);
     .my_name(MyName);
     .send(TaskOwnerName,tell,readyToConnect(MyName));
@@ -70,7 +76,7 @@
     ?lastAction(connect,Time);
     ?getDirection(XBlock,YBlock,Direction);
     !performAction(detach(Direction));
-    .abolish(auxiliar(MyName,TaskOwnerName));
+    -ownerPositioned;.abolish(auxiliar(MyName,TaskOwnerName));
     .broadcast(untell,auxiliar(MyName,TaskOwnerName));
     !!startMovement.
 

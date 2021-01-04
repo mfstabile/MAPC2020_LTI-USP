@@ -71,7 +71,8 @@ blockBlocked(w) :- carrying(Xblock,Yblock,T) &
 <-	!chooseDirection;
 		!randomWalk.
 
-+!randomWalk : dispenser(_,_,b0) &
++!randomWalk : not noMoreOwners &
+         dispenser(_,_,b0) &
 				 dispenser(_,_,b1) &
 				 dispenser(_,_,b2) &
 				 taskboard(_,_) &
@@ -79,14 +80,19 @@ blockBlocked(w) :- carrying(Xblock,Yblock,T) &
 				 .count(taskowner(Owner),TaskOwnerAmount) &
          .all_names(AllAgents) &
 				 .length(AllAgents,AgentAmount) &
-				 TaskOwnerAmount < 1 &//(AgentAmount/3) &
+				 TaskOwnerAmount < (AgentAmount/3) &
 				 .count(mapper(AgentName, _, _) & not taskowner(AgentName) & not auxiliar(AgentName,_), AvailableAgents) &
-				 AvailableAgents > 2 &
+				 AvailableAgents > 1 &
          .my_name(MyName) &
          not auxiliar(MyName,_)
-<-    +taskowner(MyName);
-			.broadcast(tell, taskowner(MyName));
-			!!achieveTask.
+<-    .broadcast(tell, taskowner(MyName));
+      +taskowner(MyName);
+      .count(taskowner(Owner),TaskOwnerAmountNew);
+      if(TaskOwnerAmountNew>=(AgentAmount/3)){
+        .broadcast(tell, noMoreOwners);
+        .print("noMoreOwners");
+      }
+      !!achieveTask.
 
 +!randomWalk
 <-	.random(Number);
