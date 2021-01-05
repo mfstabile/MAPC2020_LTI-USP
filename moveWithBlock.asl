@@ -47,47 +47,56 @@
 //////////////////////////////Auxiliar/////////////////////////////////////////////
 +!verifyTargetOccupation: .my_name(MyName) &
                           auxiliar(MyName,TaskOwnerName) &
-                          position(XPosition,YPosition,_) &
+                          // position(XPosition,YPosition,_) &
                           carryBlockTo(XTarget,YTarget) &
-                          (((XTarget-XPosition)**2 + (YTarget-YPosition)**2)**0.5) < 10 &
+                          // (((XTarget-XPosition)**2 + (YTarget-YPosition)**2)**0.5) < 10 &
                           not ownerPositioned
-<-  !performAction(skip);
-    !verifyTargetOccupation.
-
+<-  ?getLastPosition(XPosition,YPosition);
+    Distance = (((XTarget-XPosition)**2 + (YTarget-YPosition)**2)**0.5)
+    if(Distance <15){
+      !performAction(skip);
+      !verifyTargetOccupation;
+    }.
 //////////////////////////////Owner/////////////////////////////////////////////
-
+//Verify Goal position if it is blocked with other agent/block
+//implemented for 1 auxiliar
 +!verifyTargetOccupation: carryBlockTo(XTarget,YTarget) &
-                          position(XPosition,YPosition,_) &
-                          (((XTarget-XPosition)**2 + (YTarget-YPosition)**2)**0.5) < 5 &
-                          thing(XTarget-XPosition,YTarget-YPosition,_,_,_) &
-                          auxiliarPosition(AuxiliarAgentName,XAgentPosition,YAgentPosition,Direction,BlockType) &
+                          auxiliarPosition(AuxiliarAgentName,XAgentPosition,YAgentPosition,Direction,BlockType,Order) &
                           mapper(AuxiliarAgentName,XMapper,YMapper)
-<-  .print("Changing goal position because it is occupied");
-    ?getLastPosition(MyX,MyY);
-    !chooseGoal(XNearGoal,YNearGoal);
-    .abolish(carryBlockTo(_,_));
-    +carryBlockTo(XNearGoal,YNearGoal);
-    .send(AuxiliarAgentName,unachieve, goAssist(_,_,_,_));
-    .send(AuxiliarAgentName,unachieve, fixAuxiliarSetup(_,_,_,_,_));
-    .my_name(MyName);
-    if(XBlock == 0){
-      XAgentPositionNew = MyX+XBlock+XMapper-1;
-      YAgentPositionNew = MyY+YBlock+YMapper;
-      DirectionNew = e;
-    }else{
-      XAgentPositionNew = MyX+XBlock+XMapper;
-      YAgentPositionNew = MyY+YBlock+YMapper-1;
-      DirectionNew = s;
+<-  ?getLastPosition(MyX,MyY);
+    Distance = (((XTarget-MyX)**2 + (YTarget-MyY)**2)**0.5);
+    .count(thing(XTarget-MyX,YTarget-MyY,_,_,_),ThingAmount);
+    if (Distance < 5 & ThingAmount > 0){
+      .print("--------------------->Changing goal position because it is occupied<-----------------");
+      !chooseAvailableGoal(XNearGoal,YNearGoal);
+      .abolish(carryBlockTo(_,_));
+      +carryBlockTo(XNearGoal,YNearGoal);
+      .send(AuxiliarAgentName,unachieve, goAssist(_,_,_,_));
+      .send(AuxiliarAgentName,unachieve, fixAuxiliarSetup(_,_,_,_,_));
+      .my_name(MyName);
+      ?accepted(TaskName,_);
+      ?task(TaskName,_,_,Requirements,_);
+      .delete(req(0,1,_),Requirements,[req(XBlock,YBlock,BlockType)]);
+      if(XBlock == 0){
+        XAgentPositionNew = XNearGoal+XBlock+XMapper-1;
+        YAgentPositionNew = YNearGoal+YBlock+YMapper;
+        DirectionNew = e;
+      }else{
+        XAgentPositionNew = XNearGoal+XBlock+XMapper;
+        YAgentPositionNew = YNearGoal+YBlock+YMapper-1;
+        DirectionNew = s;
+      }
+      .abolish(auxiliarPosition(AuxiliarAgentName,_,_,_,_,_));
+      +auxiliarPosition(AuxiliarAgentName,XAgentPositionNew,YAgentPositionNew,DirectionNew,BlockType,Order);
+      .send(AuxiliarAgentName,achieve,fixAuxiliarSetup(XAgentPositionNew,YAgentPositionNew,DirectionNew,MyName,BlockType));
+      .print("***************************New goal position because it is occupied");
     }
-    .abolish(auxiliarPosition(AuxiliarAgentName,_,_,_,_));
-    +auxiliarPosition(AuxiliarAgentName,XAgentPositionNew,YAgentPositionNew,DirectionNew,BlockType);
-    .send(AuxiliarAgentName,achieve,fixAuxiliarSetup(XAgentPositionNew,YAgentPositionNew,DirectionNew,MyName,BlockType));
-    .print("New goal position because it is occupied");
     .
 
 +!verifyTargetOccupation <- true.
 
-+!chooseGoal(XNearGoal,YNearGoal)
++!chooseAvailableGoal(XNearGoal,YNearGoal)
 <-  ?getLastPosition(MyX,MyY);
-    .setof(g(((XGoal-MyX)**2)+((YGoal-MyY)**2),XGoal,YGoal),goal(XGoal,YGoal) & not thing(XTarget-MyX,YTarget-MyY,_,_,_),GoalList);
-    .min(GoalList,g(Dist,XNearGoal,YNearGoal)).
+    .setof(g(((XGoal-MyX)**2)+((YGoal-MyY)**2),XGoal,YGoal),goal(XGoal,YGoal) & not thing(XGoal-MyX,YGoal-MyY,_,_,_),GoalList);
+    .min(GoalList,g(Dist,XNearGoal,YNearGoal));
+    .print("########################Found new goal area: ",XNearGoal,":",YNearGoal).

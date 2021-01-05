@@ -45,6 +45,36 @@
     !!achieveTask;
 .
 
++!executeTask(3)
+<-  !chooseGoal(XGoal,YGoal);
+    !chooseAgent;
+    !chooseAgent;
+    !setAvailableRequirements;
+    .my_name(MyName);
+    .findall(AuxiliarAgentName, auxiliar(AuxiliarAgentName,MyName), [AuxiliarAgentName1,AuxiliarAgentName2]);
+    !sendInstructions(AuxiliarAgentName1, XGoal, YGoal);
+    !sendInstructions(AuxiliarAgentName2, XGoal, YGoal);
+    !getOwnerBlockType(BlockType);
+    !goToDispenser(BlockType);
+    !getBlock;
+    .abolish(carryBlockTo(_,_));
+    +carryBlockTo(XGoal,YGoal);
+    !carryBlock;
+    !setupBlock(s);
+    !checkObstacleAuxiliarArea(AuxiliarAgentName1);
+    !checkObstacleAuxiliarArea(AuxiliarAgentName2);
+    .send(AuxiliarAgentName,tell,ownerPositioned);
+    // !checkThingAuxiliarArea;
+    !waitAuxiliar;
+    !checkSetup;
+    !connect;
+    !submitTask;
+    .abolish(carrying(_,_,_));
+    .print("Deveria ter entregue a task");
+    !clearSubmittedInformation;
+    !!achieveTask;
+.
+
 +!skip <- !performAction(skip);!skip.
 
 ///////////////////////////////////////////////////////////////////////////
@@ -258,18 +288,34 @@
       +requirementAvailable(RemainingRequirements);
     };
     ?mapper(AuxiliarAgentName,XMapper,YMapper);
-    if(XBlock == 0){
-      XAgentPosition = XGoal+XBlock+XMapper-1;
-      YAgentPosition = YGoal+YBlock+YMapper;
-      Direction = e;
+    BlockDistance = (XBlock)**2 + (YBlock - 1)**2;
+    if(BlockDistance == 1){
+      Order = 1;
+      if(XBlock == 0){
+        XAgentPosition = XGoal+XBlock+XMapper-1;
+        YAgentPosition = YGoal+YBlock+YMapper;
+        Direction = e;
+      }else{
+        XAgentPosition = XGoal+XBlock+XMapper;
+        YAgentPosition = YGoal+YBlock+YMapper-1;
+        Direction = s;
+      }
     }else{
-      XAgentPosition = XGoal+XBlock+XMapper;
-      YAgentPosition = YGoal+YBlock+YMapper-1;
-      Direction = s;
-    }
+      Order = 2;
+      if(XBlock < 0){
+        XAgentPosition = XGoal+XBlock+XMapper-1;
+        YAgentPosition = YGoal+YBlock+YMapper;
+        Direction = e;
+      }else{
+        XAgentPosition = XGoal+XBlock+XMapper+1;
+        YAgentPosition = YGoal+YBlock+YMapper;
+        Direction = w;
+      }
+    };
+
     .send(AuxiliarAgentName,unachieve,startMovement);
     .send(AuxiliarAgentName,achieve,goAssist(XAgentPosition,YAgentPosition,BlockType,Direction));
-    +auxiliarPosition(AuxiliarAgentName,XAgentPosition,YAgentPosition,Direction,BlockType).
+    +auxiliarPosition(AuxiliarAgentName,XAgentPosition,YAgentPosition,Direction,BlockType, Order).
 
 ///////////////////////////////////////////////////////////////////////////
 
@@ -297,19 +343,19 @@
 
 -!checkSetup <- !fixSetup.
 ///////////////////////////////////////////////////////////////////////////
-+!fixSetup : auxiliarPosition(AuxiliarAgentName1,XAgentPosition1,YAgentPosition1,Direction1,BlockType) &
-             auxiliarPosition(AuxiliarAgentName2,XAgentPosition2,YAgentPosition2,Direction2,BlockType) &
++!fixSetup : auxiliarPosition(AuxiliarAgentName1,XAgentPosition1,YAgentPosition1,Direction1,BlockType1,Order1) &
+             auxiliarPosition(AuxiliarAgentName2,XAgentPosition2,YAgentPosition2,Direction2,BlockType2,Order2) &
              AuxiliarAgentName1 \== AuxiliarAgentName2
 <-  .my_name(MyName);
     .abolish(readyToConnect(_));
     .send(AuxiliarAgentName1,unachieve, skip);
     .send(AuxiliarAgentName2,unachieve, skip);
-    .send(AuxiliarAgentName1,achieve,fixAuxiliarSetup(XAgentPosition1,YAgentPosition1,Direction1,MyName,BlockType));
-    .send(AuxiliarAgentName2,achieve,fixAuxiliarSetup(XAgentPosition2,YAgentPosition2,Direction2,MyName,BlockType));
+    .send(AuxiliarAgentName1,achieve,fixAuxiliarSetup(XAgentPosition1,YAgentPosition1,Direction1,MyName,BlockType1));
+    .send(AuxiliarAgentName2,achieve,fixAuxiliarSetup(XAgentPosition2,YAgentPosition2,Direction2,MyName,BlockType2));
     !waitAuxiliar;
     .
 
-+!fixSetup : auxiliarPosition(AuxiliarAgentName,XAgentPosition,YAgentPosition,Direction,BlockType)
++!fixSetup : auxiliarPosition(AuxiliarAgentName,XAgentPosition,YAgentPosition,Direction,BlockType,Order)
 <-  .my_name(MyName);
     .abolish(readyToConnect(_));
     .send(AuxiliarAgentName,unachieve, skip);
@@ -332,7 +378,74 @@
 ///////////////////////////////////////////////////////////////////////////
 +!checkObstacleAuxiliarArea : accepted(TaskName,_) &
                       task(TaskName,_,_,Requirements,_) &
-                      auxiliarPosition(AuxiliarAgentName,XAgentPosition,YAgentPosition,Direction,BlockType) &
+                      auxiliarPosition(AuxiliarAgentName1,XAgentPosition1,YAgentPosition1,Direction1,BlockType1,1) &
+                      auxiliarPosition(AuxiliarAgentName2,XAgentPosition2,YAgentPosition2,Direction2,BlockType2,2) &
+                      AuxiliarAgentName1 \== AuxiliarAgentName2 &
+                      mapper(AuxiliarAgentName1,XMapper1,YMapper1) &
+                      mapper(AuxiliarAgentName2,XMapper2,YMapper2)
+<-  .delete(req(0,1,_),Requirements,[req(XBlockA,YBlockA,_),req(XBlockB,YBlockB,_)]);
+    BlockDistanceA = (XBlockA)**2 + (YBlockA - 1)**2;
+    if(BlockDistanceA == 1){
+      XBlock1 = XBlockA;
+      YBlock1 = YBlockA;
+      XBlock2 = XBlockB;
+      YBlock2 = YBlockB;
+    }else{
+      XBlock1 = XBlockB;
+      YBlock1 = YBlockB;
+      XBlock2 = XBlockA;
+      YBlock2 = YBlockA;
+    }
+    .count(obstacle(XBlock1,YBlock1,_), BlockObstacle1);
+    .count(obstacle(XBlock2,YBlock2,_), BlockObstacle2);
+    ?getLastPosition(MyX,MyY);
+    XAuxiliar1 = XAgentPosition1 - XMapper1 - MyX;
+    YAuxiliar1 = YAgentPosition1 - YMapper1 - MyY;
+    XAuxiliar2 = XAgentPosition2 - XMapper2 - MyX;
+    YAuxiliar2 = YAgentPosition2 - YMapper2 - MyY;
+    .count(obstacle(XAuxiliar1,YAuxiliar1,_), AuxiliarObstacle1);
+    .count(obstacle(XAuxiliar2,YAuxiliar2,_), AuxiliarObstacle2);
+    if(BlockObstacle1>0 | AuxiliarObstacle1 > 0 | BlockObstacle2>0 | AuxiliarObstacle2 > 0){
+        .print("Goal Area is blocked");
+        +goalChanged;
+        !fixSubmitPosition;
+        !checkObstacleAuxiliarArea;
+    }elif(.count(goalChanged,Changed) & Changed > 0){
+        .print("Goal Area unblocked successfully");
+        .send(AuxiliarAgentName1,unachieve, goAssist(_,_,_,_));
+        .send(AuxiliarAgentName1,unachieve, fixAuxiliarSetup(_,_,_,_,_));
+        .send(AuxiliarAgentName2,unachieve, goAssist(_,_,_,_));
+        .send(AuxiliarAgentName2,unachieve, fixAuxiliarSetup(_,_,_,_,_));
+        .my_name(MyName);
+        if(XBlock1 == 0){
+          XAgentPositionNew1 = XGoal+XBlock1+XMapper1-1;
+          YAgentPositionNew1 = YGoal+YBlock1+YMapper1;
+          DirectionNew1 = e;
+        }else{
+          XAgentPositionNew1 = XGoal+XBlock1+XMapper1;
+          YAgentPositionNew1 = YGoal+YBlock1+YMapper1-1;
+          DirectionNew1 = s;
+        }
+        if(XBlock2 < 0){
+          XAgentPositionNew2 = XGoal+XBlock2+XMapper2-1;
+          YAgentPositionNew2 = YGoal+YBlock2+YMapper2;
+          DirectionNew2 = e;
+        }else{
+          XAgentPositionNew2 = XGoal+XBlock2+XMapper2+1;
+          YAgentPositionNew2 = YGoal+YBlock2+YMapper2;
+          DirectionNew2 = w;
+        }
+        .abolish(auxiliarPosition(AuxiliarAgentName1,_,_,_,_,_));
+        .abolish(auxiliarPosition(AuxiliarAgentName2,_,_,_,_,_));
+        +auxiliarPosition(AuxiliarAgentName1,XAgentPositionNew1,YAgentPositionNew1,DirectionNew1,BlockType1,Order1);
+        +auxiliarPosition(AuxiliarAgentName2,XAgentPositionNew2,YAgentPositionNew2,DirectionNew2,BlockType2,Order2);
+        .send(AuxiliarAgentName1,achieve,fixAuxiliarSetup(XAgentPositionNew1,YAgentPositionNew1,DirectionNew1,MyName,BlockType1));
+        .send(AuxiliarAgentName2,achieve,fixAuxiliarSetup(XAgentPositionNew2,YAgentPositionNew2,DirectionNew2,MyName,BlockType2));
+    }.
+
++!checkObstacleAuxiliarArea : accepted(TaskName,_) &
+                      task(TaskName,_,_,Requirements,_) &
+                      auxiliarPosition(AuxiliarAgentName,XAgentPosition,YAgentPosition,Direction,BlockType,Order) &
                       mapper(AuxiliarAgentName,XMapper,YMapper)
 <-  .delete(req(0,1,_),Requirements,[req(XBlock,YBlock,_)]);
     .count(obstacle(XBlock,YBlock,_), BlockObstacle);
@@ -359,8 +472,8 @@
           YAgentPositionNew = MyY+YBlock+YMapper-1;
           DirectionNew = s;
         }
-        .abolish(auxiliarPosition(AuxiliarAgentName,_,_,_,_));
-        +auxiliarPosition(AuxiliarAgentName,XAgentPositionNew,YAgentPositionNew,DirectionNew,BlockType);
+        .abolish(auxiliarPosition(AuxiliarAgentName,_,_,_,_,_));
+        +auxiliarPosition(AuxiliarAgentName,XAgentPositionNew,YAgentPositionNew,DirectionNew,BlockType,Order);
         .send(AuxiliarAgentName,achieve,fixAuxiliarSetup(XAgentPositionNew,YAgentPositionNew,DirectionNew,MyName,BlockType));
     }.
 
@@ -380,7 +493,7 @@
 
 +!checkThingAuxiliarArea : accepted(TaskName,_) &
                       task(TaskName,_,_,Requirements,_) &
-                      auxiliarPosition(AuxiliarAgentName,XAgentPosition,YAgentPosition,Direction,BlockType) &
+                      auxiliarPosition(AuxiliarAgentName,XAgentPosition,YAgentPosition,Direction,BlockType,Order) &
                       mapper(AuxiliarAgentName,XMapper,YMapper)
 <-  .delete(req(0,1,_),Requirements,[req(XBlock,YBlock,_)]);
     .count(obstacle(XBlock,YBlock,_), BlockObstacle);
@@ -406,14 +519,14 @@
           YAgentPositionNew = MyY+YBlock+YMapper-1;
           DirectionNew = s;
         }
-        .abolish(auxiliarPosition(AuxiliarAgentName,_,_,_,_));
-        +auxiliarPosition(AuxiliarAgentName,XAgentPositionNew,YAgentPositionNew,DirectionNew,BlockType);
+        .abolish(auxiliarPosition(AuxiliarAgentName,_,_,_,_,_));
+        +auxiliarPosition(AuxiliarAgentName,XAgentPositionNew,YAgentPositionNew,DirectionNew,BlockType,Order);
         .send(AuxiliarAgentName,achieve,fixAuxiliarSetup(XAgentPositionNew,YAgentPositionNew,DirectionNew,MyName,BlockType));
     }.
 
 ///////////////////////////////////////////////////////////////////////////
 +!clearSubmittedInformation
-<-  .abolish(auxiliarPosition(_,_,_,_,_));
+<-  .abolish(auxiliarPosition(_,_,_,_,_,_));
     .abolish(goalChanged);
     .my_name(MyName);
     .broadcast(untell,acceptedTask(MyName, _));
