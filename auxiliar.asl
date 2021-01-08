@@ -26,26 +26,45 @@
 <-  .print("Entrando no check deadline");
     !setupBlock(s);
     .print("Bloco deveria estar no sul");
-    !clearBlock;
+    !clearBlockAuxiliar;
     .print("Deveria ter apagado bloco");
     .abolish(carrying(_,_,_));
-    .print("Deadline 3");
-    -ownerPositioned;.abolish(auxiliar(MyName,TaskOwnerName));
+    .print("Deadline Auxiliar 3");
+
+    // .wait("+nunca");
+
+    .abolish(ownerPositioned);
+    .abolish(auxiliar(MyName,TaskOwnerName));
+    .print("Erasing auxiliar to ",TaskOwnerName);
     .broadcast(untell,auxiliar(MyName,TaskOwnerName));
     Answer = false.
 
 +?checkDeadline(Answer) : .my_name(MyName) & auxiliar(MyName,TaskOwnerName) & acceptedTask(TaskOwnerName, TaskName) & not task(TaskName,_,_,_,_) & carrying(_,_,_)
 <-  !setupBlock(s);
     !performAction(detach(s));
-    !clearBlock;
+    !clearBlockAuxiliar;
     .abolish(carrying(_,_,_));
-    .print("Deadline 4");
-    -ownerPositioned;.abolish(auxiliar(MyName,TaskOwnerName));
+    .print("Deadline Auxiliar 4");
+    .abolish(ownerPositioned);
+    .abolish(auxiliar(MyName,TaskOwnerName));
+    .print("Erasing auxiliar to ",TaskOwnerName);
     .broadcast(untell,auxiliar(MyName,TaskOwnerName));
     Answer = false.
 
-+?checkDeadline(Answer) : .my_name(MyName) & auxiliar(MyName,TaskOwnerName) & acceptedTask(TaskOwnerName, TaskName) & task(TaskName,Deadline,_,_,_) & step(Step, _) & Step > Deadline <- .print("Deadline 1");-ownerPositioned;.abolish(auxiliar(MyName,TaskOwnerName));.broadcast(untell,auxiliar(MyName,TaskOwnerName));Answer = false.
-+?checkDeadline(Answer) : .my_name(MyName) & auxiliar(MyName,TaskOwnerName) & acceptedTask(TaskOwnerName, TaskName) & not task(TaskName,Deadline,_,_,_) & step(Step, _) <- .print("Deadline 2");-ownerPositioned;.abolish(auxiliar(MyName,TaskOwnerName));.broadcast(untell,auxiliar(MyName,TaskOwnerName));Answer = false.
++?checkDeadline(Answer) : .my_name(MyName) & auxiliar(MyName,TaskOwnerName) & acceptedTask(TaskOwnerName, TaskName) & task(TaskName,Deadline,_,_,_) & step(Step, _) & Step > Deadline
+  <- .print("Deadline Auxiliar 1");
+     .abolish(ownerPositioned);
+     .abolish(auxiliar(MyName,TaskOwnerName));
+     .print("Erasing auxiliar to ",TaskOwnerName);
+     .broadcast(untell,auxiliar(MyName,TaskOwnerName));
+     Answer = false.
++?checkDeadline(Answer) : .my_name(MyName) & auxiliar(MyName,TaskOwnerName) & acceptedTask(TaskOwnerName, TaskName) & not task(TaskName,Deadline,_,_,_) & step(Step, _)
+  <- .print("Deadline Auxiliar 2");
+     .abolish(ownerPositioned);
+     .abolish(auxiliar(MyName,TaskOwnerName));
+     .print("Erasing auxiliar to ",TaskOwnerName);
+     .broadcast(untell,auxiliar(MyName,TaskOwnerName));
+     Answer = false.
 +?checkDeadline(Answer) : .my_name(MyName) & auxiliar(MyName,TaskOwnerName) & acceptedTask(TaskOwnerName, TaskName) & task(TaskName,Deadline,_,_,_) & step(Step, _) <- Answer = true.
 ///////////////////////////////////////////////////////////////////////////
 +!fixAuxiliarSetup(XAgentPosition,YAgentPosition,BlockDirection,TaskOwnerName,BlockType) : carrying(_,_,_)
@@ -70,13 +89,17 @@
 
 ///////////////////////////////////////////////////////////////////////////
 +!connectAuxiliar : .my_name(MyName) & auxiliar(MyName,TaskOwnerName)
-<-  ?carrying(XBlock,YBlock,_);
-    !performAction(connect(TaskOwnerName,XBlock,YBlock));
-    ?lastActionResult(success,Time);
-    ?lastAction(connect,Time);
-    ?getDirection(XBlock,YBlock,Direction);
-    !performAction(detach(Direction));
-    -ownerPositioned;.abolish(auxiliar(MyName,TaskOwnerName));
+<-  ?checkDeadline(Answer);
+    if(Answer){
+      ?carrying(XBlock,YBlock,_);
+      !performAction(connect(TaskOwnerName,XBlock,YBlock));
+      ?lastActionResult(success,Time);
+      ?lastAction(connect,Time);
+      ?getDirection(XBlock,YBlock,Direction);
+      !performAction(detach(Direction));
+    }
+    .abolish(ownerPositioned);
+    .abolish(auxiliar(MyName,TaskOwnerName));
     .broadcast(untell,auxiliar(MyName,TaskOwnerName));
     !!startMovement.
 
@@ -87,3 +110,12 @@
 +?getDirection(0,-1,n).
 +?getDirection(1,0,e).
 +?getDirection(-1,0,w).
+
+///////////////////////////////////////////////////////////////////////////
+
++!clearBlockAuxiliar : carrying(X,Y,T) & not thing(X,Y,block,_,T) <- -carrying(X,Y,T).
++!clearBlockAuxiliar : thing(X,Y,entity,_,_) & (X\==0 | Y\==0) <- !moveToEmptySpace;!clearBlockAuxiliar.
++!clearBlockAuxiliar : carrying(0,1,T) & thing(0,1,block,_,T) <- !performAction(clear(1,1));!clearBlockAuxiliar.
++!clearBlockAuxiliar : carrying(1,0,T) & thing(1,0,block,_,T) <- !performAction(clear(1,1));!clearBlockAuxiliar.
++!clearBlockAuxiliar : carrying(0,-1,T) & thing(0,-1,block,_,T) <- !performAction(clear(-1,-1));!clearBlockAuxiliar.
++!clearBlockAuxiliar : carrying(-1,0,T) & thing(-1,0,block,_,T) <- !performAction(clear(-1,-1));!clearBlockAuxiliar.

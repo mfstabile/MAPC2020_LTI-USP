@@ -19,11 +19,14 @@
 ////////////////////////////////ADDING DISPENSER///////////////////////////////////////////
 +thing(XDisp,YDisp,dispenser,DispType,Time) : position(XAg,YAg,Time) & not dispenser(XDisp+XAg,YDisp+YAg,DispType)
 // +thing(XDisp,YDisp,dispenser,DispType,Time) : position(XAg,YAg,Time) & not dispenser(_,_,DispType)
-<-  +dispenser(XDisp+XAg,YDisp+YAg,DispType);
-    for ( mapper(Sender, XMapper, YMapper) ) {
-      .send(Sender,tell,dispenser(XDisp+XAg+XMapper, YDisp+YAg+YMapper, DispType));
-    }
-    .
+<-  if(.number(XDisp)){
+      +dispenser(XDisp+XAg,YDisp+YAg,DispType);
+      for ( mapper(Sender, XMapper, YMapper) ) {
+        .send(Sender,tell,dispenser(XDisp+XAg+XMapper, YDisp+YAg+YMapper, DispType));
+      }
+    }else{
+      .print("Achamos um XDisp que não é número: ", XDisp);
+    }.
 
 +thing(XDisp,YDisp,dispenser,DispType,Time) : not position(XAg,YAg,Time)
 <-  .wait("+position(XAg,YAg,Time)");

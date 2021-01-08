@@ -35,9 +35,9 @@
     !checkObstacleAuxiliarArea;
     .send(AuxiliarAgentName,tell,ownerPositioned);
     // !checkThingAuxiliarArea;
-    !waitAuxiliar;
+    !waitAuxiliar(AuxiliarAgentName);
     !checkSetup;
-    !connect;
+    !connect(AuxiliarAgentName,1);
     !submitTask;
     .abolish(carrying(_,_,_));
     .print("Deveria ter entregue a task");
@@ -61,13 +61,17 @@
     +carryBlockTo(XGoal,YGoal);
     !carryBlock;
     !setupBlock(s);
-    !checkObstacleAuxiliarArea(AuxiliarAgentName1);
-    !checkObstacleAuxiliarArea(AuxiliarAgentName2);
-    .send(AuxiliarAgentName,tell,ownerPositioned);
+    !checkObstacleAuxiliarArea;
+    .send(AuxiliarAgentName1,tell,ownerPositioned);
     // !checkThingAuxiliarArea;
-    !waitAuxiliar;
-    !checkSetup;
-    !connect;
+    !waitAuxiliar(AuxiliarAgentName1);
+    !checkAgentSetup(1);
+    !connect(AuxiliarAgentName1,1);
+    .send(AuxiliarAgentName2,tell,ownerPositioned);
+    // !checkThingAuxiliarArea;
+    !waitAuxiliar(AuxiliarAgentName2);
+    !checkAgentSetup(2);
+    !connect(AuxiliarAgentName2,2);
     !submitTask;
     .abolish(carrying(_,_,_));
     .print("Deveria ter entregue a task");
@@ -203,9 +207,14 @@
 +!submitTask
 <-  ?checkDeadline(Active);
     ?hasBlock(HasBlock);
+    .print("submit failed ", Active, HasBlock);
     .
 
--!submitTask <- !submitTask.
+-!submitTask
+  <- ?checkDeadline(Active);
+     if(Active){
+        !submitTask;
+     }.
 
 ///////////////////////////////////////////////////////////////////////////
 +!clearBlock : not thing(0,1,block,_,_) <- true.
@@ -249,7 +258,8 @@
 +?checkDeadline(Answer) : accepted(TaskName,_) & not task(TaskName,Deadline,_,_,_) & step(Step, _) <- .print("Deadline 2");Answer = false.
 +?checkDeadline(Answer) : accepted(TaskName,_) & task(TaskName,Deadline,_,_,_) & step(Step, _) <- Answer = true.
 
-+?hasBlock(Answer) : step(_,Time) & not carrying(_,_,Time) <- .wait("+carrying(_,_,Time)",10,Arg);?hasBlock(Answer).
+
++?hasBlock(Answer) : step(_,Time) & not carrying(_,_,Time) & thing(_,_,block,_,Time)<- .wait("+carrying(_,_,Time)",10,Arg);?hasBlock(Answer).
 +?hasBlock(Answer) : carrying(XBlock,YBlock,Time) & thing(XBlock,YBlock,block,_,Time) <- Answer = true.
 +?hasBlock(Answer) : carrying(XBlock,YBlock,Time) & not thing(XBlock,YBlock,block,_,Time) <- Answer = false.
 +?hasBlock(Answer) <- Answer = false.
@@ -313,6 +323,8 @@
       }
     };
 
+    +requirement(XBlock,YBlock,BlockType,Order);
+
     .send(AuxiliarAgentName,unachieve,startMovement);
     .send(AuxiliarAgentName,achieve,goAssist(XAgentPosition,YAgentPosition,BlockType,Direction));
     +auxiliarPosition(AuxiliarAgentName,XAgentPosition,YAgentPosition,Direction,BlockType, Order).
@@ -326,14 +338,10 @@
     .nth(0,BTypeList,BlockType).
 
 ///////////////////////////////////////////////////////////////////////////
-+!waitAuxiliar : .my_name(MyName) & auxiliar(Auxiliar1,MyName) & auxiliar(Auxiliar2,MyName) & Auxiliar1 \== Auxiliar2
-<-  ?readyToConnect(Auxiliar1);
-    ?readyToConnect(Auxiliar2).
++!waitAuxiliar(AuxiliarAgentName)
+<-  ?readyToConnect(AuxiliarAgentName).
 
-+!waitAuxiliar : .my_name(MyName) & auxiliar(Auxiliar1,MyName)
-<-  ?readyToConnect(Auxiliar1).
-
--!waitAuxiliar <- !performAction(skip);!waitAuxiliar.
+-!waitAuxiliar(AuxiliarAgentName) <- !performAction(skip);!waitAuxiliar(AuxiliarAgentName).
 ///////////////////////////////////////////////////////////////////////////
 +!checkSetup: accepted(TaskName,_) & task(TaskName,_,_,Requirements,_)
 <-  for ( .member(req(XBlock,YBlock,BlockType),Requirements) ) {         // iteration
@@ -343,16 +351,17 @@
 
 -!checkSetup <- !fixSetup.
 ///////////////////////////////////////////////////////////////////////////
-+!fixSetup : auxiliarPosition(AuxiliarAgentName1,XAgentPosition1,YAgentPosition1,Direction1,BlockType1,Order1) &
-             auxiliarPosition(AuxiliarAgentName2,XAgentPosition2,YAgentPosition2,Direction2,BlockType2,Order2) &
-             AuxiliarAgentName1 \== AuxiliarAgentName2
++!checkAgentSetup(Order) : requirement(XBlock, YBlock, BlockType, Order)
+<- ?thing(XBlock,YBlock,block,BlockType,_).
+
+-!checkAgentSetup(Order) <- !fixSetup(Order).
+///////////////////////////////////////////////////////////////////////////
++!fixSetup(Order) : auxiliarPosition(AuxiliarAgentName1,XAgentPosition1,YAgentPosition1,Direction1,BlockType1,Order)
 <-  .my_name(MyName);
     .abolish(readyToConnect(_));
     .send(AuxiliarAgentName1,unachieve, skip);
-    .send(AuxiliarAgentName2,unachieve, skip);
     .send(AuxiliarAgentName1,achieve,fixAuxiliarSetup(XAgentPosition1,YAgentPosition1,Direction1,MyName,BlockType1));
-    .send(AuxiliarAgentName2,achieve,fixAuxiliarSetup(XAgentPosition2,YAgentPosition2,Direction2,MyName,BlockType2));
-    !waitAuxiliar;
+    !waitAuxiliar(AuxiliarAgentName1);
     .
 
 +!fixSetup : auxiliarPosition(AuxiliarAgentName,XAgentPosition,YAgentPosition,Direction,BlockType,Order)
@@ -360,20 +369,31 @@
     .abolish(readyToConnect(_));
     .send(AuxiliarAgentName,unachieve, skip);
     .send(AuxiliarAgentName,achieve,fixAuxiliarSetup(XAgentPosition,YAgentPosition,Direction,MyName,BlockType));
-    !waitAuxiliar;
+    !waitAuxiliar(AuxiliarAgentName);
     .
 ///////////////////////////////////////////////////////////////////////////
-+!connect : .my_name(MyName) & auxiliar(Auxiliar,MyName)
++!connect(Auxiliar, Order)
 <-  .send(Auxiliar,unachieve, skip);
     .send(Auxiliar,achieve,connectAuxiliar);
-    !connectOwner(Auxiliar).
+    !connectOwner(Auxiliar, Order).
 
-+!connectOwner(Auxiliar)
-<-  !performAction(connect(Auxiliar,0,1));
-    ?lastActionResult(success,Time);
-    ?lastAction(connect,Time).
++!connectOwner(Auxiliar,1)
+<-  ?checkDeadline(Active);
+    if(Active){
+      !performAction(connect(Auxiliar,0,1));
+      ?lastActionResult(success,Time);
+      ?lastAction(connect,Time)
+    }.
 
--!connectOwner(Auxiliar)<-!connectOwner(Auxiliar).
++!connectOwner(Auxiliar,Order) : requirement(XBlock,YBlock,BlockType,Order-1)
+<-  ?checkDeadline(Active);
+    if(Active){
+      !performAction(connect(Auxiliar,XBlock,YBlock));
+      ?lastActionResult(success,Time);
+      ?lastAction(connect,Time)
+    }.
+
+-!connectOwner(Auxiliar, Order)<-!connectOwner(Auxiliar, Order).
 
 ///////////////////////////////////////////////////////////////////////////
 +!checkObstacleAuxiliarArea : accepted(TaskName,_) &

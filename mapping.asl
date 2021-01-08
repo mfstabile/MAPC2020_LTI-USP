@@ -51,7 +51,9 @@
             }
             //Communicating dispensers
             for ( dispenser(XDispenser,YDispenser,DispType) ) {
-              // .print(XDispenser,YDispenser,DispType);
+              if(not .number(XDispenser)){
+                  .print("------------------------>",XDispenser," : ",YDispenser," : ",DispType);
+              }
       				.send(Sender,tell,dispenser(XDispenser+XMapper, YDispenser+YMapper, DispType));
       			};
             //Communicating Taskboard
