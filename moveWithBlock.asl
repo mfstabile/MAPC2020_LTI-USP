@@ -47,17 +47,53 @@
 //////////////////////////////Auxiliar/////////////////////////////////////////////
 +!verifyTargetOccupation: .my_name(MyName) &
                           auxiliar(MyName,TaskOwnerName) &
-                          // position(XPosition,YPosition,_) &
                           carryBlockTo(XTarget,YTarget) &
-                          // (((XTarget-XPosition)**2 + (YTarget-YPosition)**2)**0.5) < 10 &
                           not ownerPositioned
 <-  ?getLastPosition(XPosition,YPosition);
     Distance = (((XTarget-XPosition)**2 + (YTarget-YPosition)**2)**0.5)
     if(Distance <10){
       !performAction(skip);
       !verifyTargetOccupation;
+    }
+    ?hasBlock(HasBlock);
+    if(not HasBlock){
+      .abolish(carrying(_,_,_));
+      ?blockType(BlockType);
+      !goToDispenser(BlockType);
+      !getBlock;
     }.
 //////////////////////////////Owner/////////////////////////////////////////////
+//Check if the agent still carries the block
++!checkBlock(Continue)
+<-  ?hasBlock(HasBlock);
+    if(not HasBlock){
+      .abolish(carrying(_,_,_));
+      ?accepted(TaskName,_);
+      ?task(TaskName,Deadline,_,_,_);
+      ?step(Step, _);
+      //verify if there is time for recovering
+      //40 is an arbitrary value
+      if(Step+40 < Deadline){
+        !getOwnerBlockType(BlockType);
+        !goToDispenser(BlockType);
+        !getBlock;
+        Continue = true;
+      }else{
+        //cancel all
+        +exceededDeadline;
+        Continue = false;
+        ?getLastPosition(MyX,MyY);
+        .abolish(carryBlockTo(_,_));
+        +carryBlockTo(MyX,MyY);
+        for(auxiliarPosition(AuxiliarAgentName,XAgentPosition,YAgentPosition,Direction,BlockType,Order) ){
+          .send(AuxiliarAgentName,unachieve,goAssist);
+          .send(AuxiliarAgentName,unachieve,fixAuxiliarSetup);
+          .send(AuxiliarAgentName,unachieve,connectAuxiliar);
+
+          .send(AuxiliarAgentName,achieve, stopAndRestart);
+        }
+      }
+    }.
 //Verify Goal position if it is blocked with other agent/block
 //implemented for 2 auxiliars
 +!verifyTargetOccupation: carryBlockTo(XTarget,YTarget) &
@@ -65,94 +101,100 @@
                           auxiliarPosition(AuxiliarAgentName2,XAgentPosition2,YAgentPosition2,Direction2,BlockType2,2) &
                           mapper(AuxiliarAgentName1,XMapper1,YMapper1) &
                           mapper(AuxiliarAgentName2,XMapper2,YMapper2)
-<-  ?getLastPosition(MyX,MyY);
-    Distance = (((XTarget-MyX)**2 + (YTarget-MyY)**2)**0.5);
-    .count(thing(XTarget-MyX,YTarget-MyY,_,_,_),ThingAmount);
-    if (Distance < 5 & ThingAmount > 0){
-      // .print("--------------------->Changing goal position because it is occupied<-----------------");
-      !chooseAvailableGoal(XNearGoal,YNearGoal);
-      .abolish(carryBlockTo(_,_));
-      +carryBlockTo(XNearGoal,YNearGoal);
-      .send(AuxiliarAgentName1,unachieve, goAssist(_,_,_,_));
-      .send(AuxiliarAgentName1,unachieve, fixAuxiliarSetup(_,_,_,_,_));
-      .send(AuxiliarAgentName2,unachieve, goAssist(_,_,_,_));
-      .send(AuxiliarAgentName2,unachieve, fixAuxiliarSetup(_,_,_,_,_));
-      .my_name(MyName);
-      ?accepted(TaskName,_);
-      ?task(TaskName,_,_,Requirements,_);
-      .delete(req(0,1,_),Requirements,[req(XBlockA,YBlockA,_),req(XBlockB,YBlockB,_)]);
-      BlockDistanceA = (XBlockA)**2 + (YBlockA - 1)**2;
-      //identifying requirement order
-      if(BlockDistanceA == 1){
-        XBlock1 = XBlockA;
-        YBlock1 = YBlockA;
-        XBlock2 = XBlockB;
-        YBlock2 = YBlockB;
-      }else{
-        XBlock1 = XBlockB;
-        YBlock1 = YBlockB;
-        XBlock2 = XBlockA;
-        YBlock2 = YBlockA;
+<-  !checkBlock(Continue);
+    if(Continue){
+      ?getLastPosition(MyX,MyY);
+      Distance = (((XTarget-MyX)**2 + (YTarget-MyY)**2)**0.5);
+      .count(thing(XTarget-MyX,YTarget-MyY,_,_,_),ThingAmount);
+      if (Distance < 5 & ThingAmount > 0){
+        // .print("--------------------->Changing goal position because it is occupied<-----------------");
+        !chooseAvailableGoal(XNearGoal,YNearGoal);
+        .abolish(carryBlockTo(_,_));
+        +carryBlockTo(XNearGoal,YNearGoal);
+        .send(AuxiliarAgentName1,unachieve, goAssist(_,_,_,_));
+        .send(AuxiliarAgentName1,unachieve, fixAuxiliarSetup(_,_,_,_,_));
+        .send(AuxiliarAgentName2,unachieve, goAssist(_,_,_,_));
+        .send(AuxiliarAgentName2,unachieve, fixAuxiliarSetup(_,_,_,_,_));
+        .my_name(MyName);
+        ?accepted(TaskName,_);
+        ?task(TaskName,_,_,Requirements,_);
+        .delete(req(0,1,_),Requirements,[req(XBlockA,YBlockA,_),req(XBlockB,YBlockB,_)]);
+        BlockDistanceA = (XBlockA)**2 + (YBlockA - 1)**2;
+        //identifying requirement order
+        if(BlockDistanceA == 1){
+          XBlock1 = XBlockA;
+          YBlock1 = YBlockA;
+          XBlock2 = XBlockB;
+          YBlock2 = YBlockB;
+        }else{
+          XBlock1 = XBlockB;
+          YBlock1 = YBlockB;
+          XBlock2 = XBlockA;
+          YBlock2 = YBlockA;
+        }
+        //updating AuxiliarAgentName1 position
+        if(XBlock1 == 0){
+          XAgentPositionNew1 = XNearGoal+XBlock1+XMapper1-1;
+          YAgentPositionNew1 = YNearGoal+YBlock1+YMapper1;
+          DirectionNew1 = e;
+        }else{
+          XAgentPositionNew1 = XNearGoal+XBlock1+XMapper1;
+          YAgentPositionNew1 = YNearGoal+YBlock1+YMapper1-1;
+          DirectionNew1 = s;
+        }
+        //updating AuxiliarAgentName2 position
+        if(XBlock2 < 0){
+          XAgentPositionNew2 = XNearGoal+XBlock2+XMapper2-1;
+          YAgentPositionNew2 = YNearGoal+YBlock2+YMapper2;
+          DirectionNew2 = e;
+        }else{
+          XAgentPositionNew2 = XNearGoal+XBlock2+XMapper2+1;
+          YAgentPositionNew2 = YNearGoal+YBlock2+YMapper2;
+          DirectionNew2 = w;
+        }
+        .abolish(auxiliarPosition(_,_,_,_,_,_));
+        +auxiliarPosition(AuxiliarAgentName1,XAgentPositionNew1,YAgentPositionNew1,DirectionNew1,BlockType1,1);
+        +auxiliarPosition(AuxiliarAgentName2,XAgentPositionNew2,YAgentPositionNew2,DirectionNew2,BlockType2,2);
+        .send(AuxiliarAgentName1,achieve,fixAuxiliarSetup(XAgentPositionNew1,YAgentPositionNew1,DirectionNew1,MyName,BlockType1));
+        .send(AuxiliarAgentName2,achieve,fixAuxiliarSetup(XAgentPositionNew2,YAgentPositionNew2,DirectionNew2,MyName,BlockType2));
+        // .print("***************************New goal position because it is occupied");
       }
-      //updating AuxiliarAgentName1 position
-      if(XBlock1 == 0){
-        XAgentPositionNew1 = XNearGoal+XBlock1+XMapper1-1;
-        YAgentPositionNew1 = YNearGoal+YBlock1+YMapper1;
-        DirectionNew1 = e;
-      }else{
-        XAgentPositionNew1 = XNearGoal+XBlock1+XMapper1;
-        YAgentPositionNew1 = YNearGoal+YBlock1+YMapper1-1;
-        DirectionNew1 = s;
-      }
-      //updating AuxiliarAgentName2 position
-      if(XBlock2 < 0){
-        XAgentPositionNew2 = XNearGoal+XBlock2+XMapper2-1;
-        YAgentPositionNew2 = YNearGoal+YBlock2+YMapper2;
-        DirectionNew2 = e;
-      }else{
-        XAgentPositionNew2 = XNearGoal+XBlock2+XMapper2+1;
-        YAgentPositionNew2 = YNearGoal+YBlock2+YMapper2;
-        DirectionNew2 = w;
-      }
-      .abolish(auxiliarPosition(_,_,_,_,_,_));
-      +auxiliarPosition(AuxiliarAgentName1,XAgentPositionNew1,YAgentPositionNew1,DirectionNew1,BlockType1,1);
-      +auxiliarPosition(AuxiliarAgentName2,XAgentPositionNew2,YAgentPositionNew2,DirectionNew2,BlockType2,2);
-      .send(AuxiliarAgentName1,achieve,fixAuxiliarSetup(XAgentPositionNew1,YAgentPositionNew1,DirectionNew1,MyName,BlockType1));
-      .send(AuxiliarAgentName2,achieve,fixAuxiliarSetup(XAgentPositionNew2,YAgentPositionNew2,DirectionNew2,MyName,BlockType2));
-      // .print("***************************New goal position because it is occupied");
     }
     .
 //implemented for 1 auxiliar
 +!verifyTargetOccupation: carryBlockTo(XTarget,YTarget) &
                           auxiliarPosition(AuxiliarAgentName,XAgentPosition,YAgentPosition,Direction,BlockType,Order) &
                           mapper(AuxiliarAgentName,XMapper,YMapper)
-<-  ?getLastPosition(MyX,MyY);
-    Distance = (((XTarget-MyX)**2 + (YTarget-MyY)**2)**0.5);
-    .count(thing(XTarget-MyX,YTarget-MyY,_,_,_),ThingAmount);
-    if (Distance < 5 & ThingAmount > 0){
-      // .print("--------------------->Changing goal position because it is occupied<-----------------");
-      !chooseAvailableGoal(XNearGoal,YNearGoal);
-      .abolish(carryBlockTo(_,_));
-      +carryBlockTo(XNearGoal,YNearGoal);
-      .send(AuxiliarAgentName,unachieve, goAssist(_,_,_,_));
-      .send(AuxiliarAgentName,unachieve, fixAuxiliarSetup(_,_,_,_,_));
-      .my_name(MyName);
-      ?accepted(TaskName,_);
-      ?task(TaskName,_,_,Requirements,_);
-      .delete(req(0,1,_),Requirements,[req(XBlock,YBlock,BlockType)]);
-      if(XBlock == 0){
-        XAgentPositionNew = XNearGoal+XBlock+XMapper-1;
-        YAgentPositionNew = YNearGoal+YBlock+YMapper;
-        DirectionNew = e;
-      }else{
-        XAgentPositionNew = XNearGoal+XBlock+XMapper;
-        YAgentPositionNew = YNearGoal+YBlock+YMapper-1;
-        DirectionNew = s;
+<-  !checkBlock(Continue);
+    if(Continue){
+      ?getLastPosition(MyX,MyY);
+      Distance = (((XTarget-MyX)**2 + (YTarget-MyY)**2)**0.5);
+      .count(thing(XTarget-MyX,YTarget-MyY,_,_,_),ThingAmount);
+      if (Distance < 5 & ThingAmount > 0){
+        // .print("--------------------->Changing goal position because it is occupied<-----------------");
+        !chooseAvailableGoal(XNearGoal,YNearGoal);
+        .abolish(carryBlockTo(_,_));
+        +carryBlockTo(XNearGoal,YNearGoal);
+        .send(AuxiliarAgentName,unachieve, goAssist(_,_,_,_));
+        .send(AuxiliarAgentName,unachieve, fixAuxiliarSetup(_,_,_,_,_));
+        .my_name(MyName);
+        ?accepted(TaskName,_);
+        ?task(TaskName,_,_,Requirements,_);
+        .delete(req(0,1,_),Requirements,[req(XBlock,YBlock,BlockType)]);
+        if(XBlock == 0){
+          XAgentPositionNew = XNearGoal+XBlock+XMapper-1;
+          YAgentPositionNew = YNearGoal+YBlock+YMapper;
+          DirectionNew = e;
+        }else{
+          XAgentPositionNew = XNearGoal+XBlock+XMapper;
+          YAgentPositionNew = YNearGoal+YBlock+YMapper-1;
+          DirectionNew = s;
+        }
+        .abolish(auxiliarPosition(AuxiliarAgentName,_,_,_,_,_));
+        +auxiliarPosition(AuxiliarAgentName,XAgentPositionNew,YAgentPositionNew,DirectionNew,BlockType,Order);
+        .send(AuxiliarAgentName,achieve,fixAuxiliarSetup(XAgentPositionNew,YAgentPositionNew,DirectionNew,MyName,BlockType));
+        // .print("***************************New goal position because it is occupied");
       }
-      .abolish(auxiliarPosition(AuxiliarAgentName,_,_,_,_,_));
-      +auxiliarPosition(AuxiliarAgentName,XAgentPositionNew,YAgentPositionNew,DirectionNew,BlockType,Order);
-      .send(AuxiliarAgentName,achieve,fixAuxiliarSetup(XAgentPositionNew,YAgentPositionNew,DirectionNew,MyName,BlockType));
-      // .print("***************************New goal position because it is occupied");
     }
     .
 

@@ -77,10 +77,8 @@ blockBlocked(w) :- carrying(Xblock,Yblock,T) &
 				 dispenser(_,_,b2) &
 				 taskboard(_,_) &
 				 goal(_,_) &
-				 .count(taskowner(Owner),TaskOwnerAmount) &
-         .all_names(AllAgents) &
+				 .all_names(AllAgents) &
 				 .length(AllAgents,AgentAmount) &
-				 TaskOwnerAmount < (AgentAmount/3) &
 				 .count(mapper(AgentName, _, _) & not taskowner(AgentName) & not auxiliar(AgentName,_), AvailableAgents) &
 				 AvailableAgents > 1 &
          .my_name(MyName) &
@@ -88,7 +86,7 @@ blockBlocked(w) :- carrying(Xblock,Yblock,T) &
 <-    .broadcast(tell, taskowner(MyName));
       +taskowner(MyName);
       .count(taskowner(Owner),TaskOwnerAmountNew);
-      if(TaskOwnerAmountNew>=(AgentAmount/3)){
+      if(TaskOwnerAmountNew>=(AgentAmount/6)){
         .broadcast(tell, noMoreOwners);
         .print("noMoreOwners");
       }

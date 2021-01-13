@@ -19,24 +19,19 @@
 ////////////////////////////////ADDING DISPENSER///////////////////////////////////////////
 +thing(XDisp,YDisp,dispenser,DispType,Time) : position(XAg,YAg,Time) & not dispenser(XDisp+XAg,YDisp+YAg,DispType)
 // +thing(XDisp,YDisp,dispenser,DispType,Time) : position(XAg,YAg,Time) & not dispenser(_,_,DispType)
-<-  if(.number(XDisp)){
-      +dispenser(XDisp+XAg,YDisp+YAg,DispType);
-      for ( mapper(Sender, XMapper, YMapper) ) {
-        .send(Sender,tell,dispenser(XDisp+XAg+XMapper, YDisp+YAg+YMapper, DispType));
-      }
-    }else{
-      .print("Achamos um XDisp que não é número: ", XDisp);
+<-  +dispenser(XDisp+XAg,YDisp+YAg,DispType);
+    for ( mapper(Sender, XMapper, YMapper) ) {
+      .send(Sender,tell,dispenser(XDisp+XAg+XMapper, YDisp+YAg+YMapper, DispType));
     }.
 
-+thing(XDisp,YDisp,dispenser,DispType,Time) : not position(XAg,YAg,Time)
++thing(XDisp,YDisp,dispenser,DispType,Time) : .number(XDisp) & not position(XAg,YAg,Time)
 <-  .wait("+position(XAg,YAg,Time)");
     ?position(XAg,YAg,Time);
     if (.count(dispenser(XDisp+XAg,YDisp+YAg,DispType),0)){
-    // if (.count(dispenser(_,_,DispType),0)){
-        +dispenser(XDisp+XAg,YDisp+YAg,DispType);
-        for ( mapper(Sender, XMapper, YMapper) ) {
-          .send(Sender,tell,dispenser(XDisp+XAg+XMapper, YDisp+YAg+YMapper, DispType));
-        };
+      +dispenser(XDisp+XAg,YDisp+YAg,DispType);
+      for ( mapper(Sender, XMapper, YMapper) ) {
+        .send(Sender,tell,dispenser(XDisp+XAg+XMapper, YDisp+YAg+YMapper, DispType));
+      };
     }.
 
 ////////////////////////////////ADDING GOAL///////////////////////////////////////////

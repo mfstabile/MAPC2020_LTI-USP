@@ -8,12 +8,11 @@
 
 ///////////////////////////////////////////////////////////////////////////
 +!goAssist(XAgentPosition,YAgentPosition,BlockType,BlockDirection)
-<-  !goToDispenser(BlockType);
+<-  +blockType(BlockType);
+    !goToDispenser(BlockType);
     !getBlock;
     .my_name(MyName);
     ?auxiliar(MyName,TaskOwnerName);
-    ?acceptedTask(TaskOwnerName, TaskName);
-    ?task(TaskName,_,_,Requirements,_);
     .abolish(carryBlockTo(_,_));
     +carryBlockTo(XAgentPosition,YAgentPosition);
     !carryBlock;
@@ -34,6 +33,7 @@
     // .wait("+nunca");
 
     .abolish(ownerPositioned);
+    .abolish(blockType(_));
     .abolish(auxiliar(MyName,TaskOwnerName));
     .print("Erasing auxiliar to ",TaskOwnerName);
     .broadcast(untell,auxiliar(MyName,TaskOwnerName));
@@ -46,6 +46,7 @@
     .abolish(carrying(_,_,_));
     .print("Deadline Auxiliar 4");
     .abolish(ownerPositioned);
+    .abolish(blockType(_));
     .abolish(auxiliar(MyName,TaskOwnerName));
     .print("Erasing auxiliar to ",TaskOwnerName);
     .broadcast(untell,auxiliar(MyName,TaskOwnerName));
@@ -54,6 +55,7 @@
 +?checkDeadline(Answer) : .my_name(MyName) & auxiliar(MyName,TaskOwnerName) & acceptedTask(TaskOwnerName, TaskName) & task(TaskName,Deadline,_,_,_) & step(Step, _) & Step > Deadline
   <- .print("Deadline Auxiliar 1");
      .abolish(ownerPositioned);
+     .abolish(blockType(_));
      .abolish(auxiliar(MyName,TaskOwnerName));
      .print("Erasing auxiliar to ",TaskOwnerName);
      .broadcast(untell,auxiliar(MyName,TaskOwnerName));
@@ -61,6 +63,7 @@
 +?checkDeadline(Answer) : .my_name(MyName) & auxiliar(MyName,TaskOwnerName) & acceptedTask(TaskOwnerName, TaskName) & not task(TaskName,Deadline,_,_,_) & step(Step, _)
   <- .print("Deadline Auxiliar 2");
      .abolish(ownerPositioned);
+     .abolish(blockType(_));
      .abolish(auxiliar(MyName,TaskOwnerName));
      .print("Erasing auxiliar to ",TaskOwnerName);
      .broadcast(untell,auxiliar(MyName,TaskOwnerName));
@@ -68,7 +71,8 @@
 +?checkDeadline(Answer) : .my_name(MyName) & auxiliar(MyName,TaskOwnerName) & acceptedTask(TaskOwnerName, TaskName) & task(TaskName,Deadline,_,_,_) & step(Step, _) <- Answer = true.
 ///////////////////////////////////////////////////////////////////////////
 +!fixAuxiliarSetup(XAgentPosition,YAgentPosition,BlockDirection,TaskOwnerName,BlockType) : carrying(_,_,_)
-<-  .abolish(carryBlockTo(_,_));
+<-  +blockType(BlockType);
+    .abolish(carryBlockTo(_,_));
     +carryBlockTo(XAgentPosition,YAgentPosition);
     !carryBlock;
     !setupBlock(BlockDirection);
@@ -77,7 +81,8 @@
     !skip.
 
 +!fixAuxiliarSetup(XAgentPosition,YAgentPosition,BlockDirection,TaskOwnerName,BlockType) : not carrying(_,_,_)
-<-  !goToDispenser(BlockType);
+<-  +blockType(BlockType);
+    !goToDispenser(BlockType);
     !getBlock;
     .abolish(carryBlockTo(_,_));
     +carryBlockTo(XAgentPosition,YAgentPosition);
@@ -99,6 +104,7 @@
       !performAction(detach(Direction));
     }
     .abolish(ownerPositioned);
+    .abolish(blockType(_));
     .abolish(auxiliar(MyName,TaskOwnerName));
     .broadcast(untell,auxiliar(MyName,TaskOwnerName));
     !!startMovement.
@@ -119,3 +125,19 @@
 +!clearBlockAuxiliar : carrying(1,0,T) & thing(1,0,block,_,T) <- !performAction(clear(1,1));!clearBlockAuxiliar.
 +!clearBlockAuxiliar : carrying(0,-1,T) & thing(0,-1,block,_,T) <- !performAction(clear(-1,-1));!clearBlockAuxiliar.
 +!clearBlockAuxiliar : carrying(-1,0,T) & thing(-1,0,block,_,T) <- !performAction(clear(-1,-1));!clearBlockAuxiliar.
+
+///////////////////////////////////STOP AND RESTART////////////////////////////////////////
++!stopAndRestart : carrying(X, Y, Time) & .my_name(MyName) & auxiliar(MyName,TaskOwnerName)
+<-  !clearBlockAuxiliar;
+    .abolish(ownerPositioned);
+    .abolish(blockType(_));
+    .abolish(auxiliar(MyName,TaskOwnerName));
+    .broadcast(untell,auxiliar(MyName,TaskOwnerName));
+    !!startMovement.
+
++!stopAndRestart : .my_name(MyName) & auxiliar(MyName,TaskOwnerName)
+<-  .abolish(ownerPositioned);
+    .abolish(blockType(_));
+    .abolish(auxiliar(MyName,TaskOwnerName));
+    .broadcast(untell,auxiliar(MyName,TaskOwnerName));
+    !!startMovement.

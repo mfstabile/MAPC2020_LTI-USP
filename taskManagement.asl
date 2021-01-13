@@ -128,7 +128,7 @@
 +!goToDispenser(BlockType)
 <-  .my_name(MyName);
     ?auxiliar(MyName,TaskOwnerName);
-    .send(TaskOwnerName,askOne,dispenser(XDispenser,YDispenser,BlockType));
+    .send(TaskOwnerName,askOne,dispenser(XDispenser,YDispenser,BlockType),dispenser(XDispenser,YDispenser,BlockType));
     ?mapper(TaskOwnerName,XMapper,YMapper);
     +dispenser(XDispenser-XMapper,YDispenser-YMapper,BlockType);
     !goToPosition(XDispenser-XMapper,YDispenser-YMapper).
@@ -236,6 +236,10 @@
     	!performAction(move(e));
     }.
 
+
++?checkDeadline(Answer) : exceededDeadline
+<-  Answer = false.
+
 +?checkDeadline(Answer) : accepted(TaskName,_) & task(TaskName,Deadline,_,_,_) & step(Step, _) & Step > Deadline & carrying(_,_,_)
 <-  .print("Entrando no check deadline");
     !setupBlock(s);
@@ -258,8 +262,10 @@
 +?checkDeadline(Answer) : accepted(TaskName,_) & not task(TaskName,Deadline,_,_,_) & step(Step, _) <- .print("Deadline 2");Answer = false.
 +?checkDeadline(Answer) : accepted(TaskName,_) & task(TaskName,Deadline,_,_,_) & step(Step, _) <- Answer = true.
 
++?hasBlock(Answer) : step(_,Time) & not carrying(_,_,Time) &
+                    (thing(0,1,block,_,Time) | thing(0,-1,block,_,Time) | thing(1,0,block,_,Time) | thing(-1,0,block,_,Time))
+<- .wait("+carrying(_,_,Time)",10,Arg);?hasBlock(Answer).
 
-+?hasBlock(Answer) : step(_,Time) & not carrying(_,_,Time) & thing(_,_,block,_,Time)<- .wait("+carrying(_,_,Time)",10,Arg);?hasBlock(Answer).
 +?hasBlock(Answer) : carrying(XBlock,YBlock,Time) & thing(XBlock,YBlock,block,_,Time) <- Answer = true.
 +?hasBlock(Answer) : carrying(XBlock,YBlock,Time) & not thing(XBlock,YBlock,block,_,Time) <- Answer = false.
 +?hasBlock(Answer) <- Answer = false.
@@ -550,4 +556,5 @@
     .abolish(goalChanged);
     .my_name(MyName);
     .broadcast(untell,acceptedTask(MyName, _));
+    .abolish(exceededDeadline);
     .abolish(readyToConnect(_)).

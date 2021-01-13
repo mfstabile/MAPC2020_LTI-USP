@@ -52,9 +52,12 @@
             //Communicating dispensers
             for ( dispenser(XDispenser,YDispenser,DispType) ) {
               if(not .number(XDispenser)){
-                  .print("------------------------>",XDispenser," : ",YDispenser," : ",DispType);
+                .type(XDispenser,Type);
+                  .print(Type,"------------------------>",XDispenser," : ",YDispenser," : ",DispType);
+              }else{
+                  .send(Sender,tell,dispenser(XDispenser+XMapper, YDispenser+YMapper, DispType));
               }
-      				.send(Sender,tell,dispenser(XDispenser+XMapper, YDispenser+YMapper, DispType));
+
       			};
             //Communicating Taskboard
             for ( taskboard(XTaskboard,YTaskboard) ) {
