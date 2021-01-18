@@ -12,13 +12,18 @@
     !goToDispenser(BlockType);
     !getBlock;
     .my_name(MyName);
-    ?auxiliar(MyName,TaskOwnerName);
-    .abolish(carryBlockTo(_,_));
-    +carryBlockTo(XAgentPosition,YAgentPosition);
-    !carryBlock;
-    !setupBlock(BlockDirection);
-    .send(TaskOwnerName,tell,readyToConnect(MyName));
-    !skip.
+    if(auxiliar(MyName,TaskOwnerName)){
+      .abolish(carryBlockTo(_,_));
+      +carryBlockTo(XAgentPosition,YAgentPosition);
+      !carryBlock;
+      !setupBlock(BlockDirection);
+      .send(TaskOwnerName,tell,readyToConnect(MyName));
+      !skip;
+    }else{
+      !stopAndRestart;
+    }.
+
+
 
 ///////////////////////////////////////////////////////////////////////////
 +?checkDeadline(Answer) : .my_name(MyName) & auxiliar(MyName,TaskOwnerName) & acceptedTask(TaskOwnerName, TaskName) & task(TaskName,Deadline,_,_,_) & step(Step, _) & Step > Deadline & carrying(_,_,_)
@@ -68,7 +73,10 @@
      .print("Erasing auxiliar to ",TaskOwnerName);
      .broadcast(untell,auxiliar(MyName,TaskOwnerName));
      Answer = false.
+
 +?checkDeadline(Answer) : .my_name(MyName) & auxiliar(MyName,TaskOwnerName) & acceptedTask(TaskOwnerName, TaskName) & task(TaskName,Deadline,_,_,_) & step(Step, _) <- Answer = true.
+
++?checkDeadline(Answer) : .my_name(MyName) & not auxiliar(MyName,TaskOwnerName) & not accepted(TaskName,_)<- Answer = false.
 ///////////////////////////////////////////////////////////////////////////
 +!fixAuxiliarSetup(XAgentPosition,YAgentPosition,BlockDirection,TaskOwnerName,BlockType) : carrying(_,_,_)
 <-  +blockType(BlockType);
@@ -109,6 +117,14 @@
     .broadcast(untell,auxiliar(MyName,TaskOwnerName));
     !!startMovement.
 
++!connectAuxiliar //: not auxiliar(MyName,TaskOwnerName)
+<-  .print("auxiliar literal not found");
+    .abolish(ownerPositioned);
+    .abolish(blockType(_));
+    .abolish(auxiliar(MyName,TaskOwnerName));
+    .broadcast(untell,auxiliar(MyName,TaskOwnerName));
+    !!startMovement.
+
 -!connectAuxiliar <- !connectAuxiliar.
 
 ///////////////////////////////////////////////////////////////////////////
@@ -118,15 +134,19 @@
 +?getDirection(-1,0,w).
 
 ///////////////////////////////////////////////////////////////////////////
-
-+!clearBlockAuxiliar : carrying(X,Y,T) & not thing(X,Y,block,_,T) <- -carrying(X,Y,T).
++!clearBlockAuxiliar : step(Step,T) & carrying(X,Y,T) & not thing(X,Y,block,_,T) <- .abolish(carrying(X,Y,T)).
 +!clearBlockAuxiliar : thing(X,Y,entity,_,_) & (X\==0 | Y\==0) <- !moveToEmptySpace;!clearBlockAuxiliar.
++!clearBlockAuxiliar : step(Step,T) & not carrying(_,_,T) <- .wait("+carrying(_,_,T)",10,Arg); !clearBlockAuxiliar.
 +!clearBlockAuxiliar : carrying(0,1,T) & thing(0,1,block,_,T) <- !performAction(clear(1,1));!clearBlockAuxiliar.
 +!clearBlockAuxiliar : carrying(1,0,T) & thing(1,0,block,_,T) <- !performAction(clear(1,1));!clearBlockAuxiliar.
 +!clearBlockAuxiliar : carrying(0,-1,T) & thing(0,-1,block,_,T) <- !performAction(clear(-1,-1));!clearBlockAuxiliar.
 +!clearBlockAuxiliar : carrying(-1,0,T) & thing(-1,0,block,_,T) <- !performAction(clear(-1,-1));!clearBlockAuxiliar.
 
 ///////////////////////////////////STOP AND RESTART////////////////////////////////////////
++!stopAndRestart : .intend(goAssist(_,_,_,_)) <- .drop_intention(goAssist(_,_,_,_));.print("--------->dropping goassist");!stopAndRestart.
++!stopAndRestart : .intend(fixAuxiliarSetup(_,_,_,_,_)) <- .drop_intention(fixAuxiliarSetup(_,_,_,_,_));.print("--------->dropping fixAuxiliarSetup");!stopAndRestart.
++!stopAndRestart : .intend(connectAuxiliar) <- .drop_intention(connectAuxiliar);.print("--------->dropping connectAuxiliar");!stopAndRestart.
+
 +!stopAndRestart : carrying(X, Y, Time) & .my_name(MyName) & auxiliar(MyName,TaskOwnerName)
 <-  !clearBlockAuxiliar;
     .abolish(ownerPositioned);
@@ -135,9 +155,20 @@
     .broadcast(untell,auxiliar(MyName,TaskOwnerName));
     !!startMovement.
 
++!stopAndRestart : carrying(X, Y, Time) & .my_name(MyName) & not auxiliar(MyName,TaskOwnerName)
+<-  !clearBlockAuxiliar;
+    .abolish(ownerPositioned);
+    .abolish(blockType(_));
+    !!startMovement.
+
 +!stopAndRestart : .my_name(MyName) & auxiliar(MyName,TaskOwnerName)
 <-  .abolish(ownerPositioned);
     .abolish(blockType(_));
     .abolish(auxiliar(MyName,TaskOwnerName));
     .broadcast(untell,auxiliar(MyName,TaskOwnerName));
+    !!startMovement.
+
++!stopAndRestart
+<-  .abolish(ownerPositioned);
+    .abolish(blockType(_));
     !!startMovement.

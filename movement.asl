@@ -29,6 +29,7 @@
 +!dodge(X,Y,w) : step(_,TIME) & position(A,B,TIME) & not blocked(w) <- !performAction(move(w)).
 +!dodge(X,Y,e) : step(_,TIME) & position(A,B,TIME) & not blocked(e) <- !performAction(move(e)).
 
++!dodge(X,Y,Direction) : step(_,TIME) & position(A,B,TIME) & blocked(n) &  blocked(s) &  blocked(e) &  blocked(w) <- !performAction(skip);!dodge(X,Y,Direction).
 +!dodge(X,Y,s) : step(_,TIME) & position(A,B,TIME) & blocked(s) <- !dodge(X,Y,w);!dodge(X,Y,s).
 +!dodge(X,Y,n) : step(_,TIME) & position(A,B,TIME) & blocked(n) <- !dodge(X,Y,e);!dodge(X,Y,n).
 +!dodge(X,Y,w) : step(_,TIME) & position(A,B,TIME) & blocked(w) <- !dodge(X,Y,n);!dodge(X,Y,w).

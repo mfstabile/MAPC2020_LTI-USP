@@ -23,6 +23,13 @@
     !chooseAgent;
     !setAvailableRequirements;
     .my_name(MyName);
+    .findall(AuxiliarAgentName, auxiliar(AuxiliarAgentName,MyName), AuxiliarList);
+    .nth(0,AuxiliarList,AuxiliarAgentName1);
+    .delete(AuxiliarAgentName1,AuxiliarList,L1);
+    for (.member(Member,L1)){
+      //fix if there are more than 1 auxiliar
+      .send(Member,achieve, stopAndRestart);
+    }
     ?auxiliar(AuxiliarAgentName,MyName);
     !sendInstructions(AuxiliarAgentName, XGoal, YGoal);
     !getOwnerBlockType(BlockType);
@@ -33,7 +40,9 @@
     !carryBlock;
     !setupBlock(s);
     !checkObstacleAuxiliarArea;
-    .send(AuxiliarAgentName,tell,ownerPositioned);
+    if(not exceededDeadline){
+      .send(AuxiliarAgentName,tell,ownerPositioned);
+    };
     // !checkThingAuxiliarArea;
     !waitAuxiliar(AuxiliarAgentName);
     !checkSetup;
@@ -51,7 +60,16 @@
     !chooseAgent;
     !setAvailableRequirements;
     .my_name(MyName);
-    .findall(AuxiliarAgentName, auxiliar(AuxiliarAgentName,MyName), [AuxiliarAgentName1,AuxiliarAgentName2]);
+    .findall(AuxiliarAgentName, auxiliar(AuxiliarAgentName,MyName), AuxiliarList);
+    .nth(0,AuxiliarList,AuxiliarAgentName1);
+    .nth(1,AuxiliarList,AuxiliarAgentName2);
+    .delete(AuxiliarAgentName1,AuxiliarList,L1);
+    .delete(AuxiliarAgentName2,L1,L2);
+    for (.member(Member,L2)){
+      //fix if there are more than 2 auxiliars
+      .send(Member,achieve, stopAndRestart);
+    }
+    // .findall(AuxiliarAgentName, auxiliar(AuxiliarAgentName,MyName), [AuxiliarAgentName1,AuxiliarAgentName2]);
     !sendInstructions(AuxiliarAgentName1, XGoal, YGoal);
     !sendInstructions(AuxiliarAgentName2, XGoal, YGoal);
     !getOwnerBlockType(BlockType);
@@ -62,12 +80,16 @@
     !carryBlock;
     !setupBlock(s);
     !checkObstacleAuxiliarArea;
-    .send(AuxiliarAgentName1,tell,ownerPositioned);
+    if(not exceededDeadline){
+      .send(AuxiliarAgentName1,tell,ownerPositioned);
+    };
     // !checkThingAuxiliarArea;
     !waitAuxiliar(AuxiliarAgentName1);
     !checkAgentSetup(1);
     !connect(AuxiliarAgentName1,1);
-    .send(AuxiliarAgentName2,tell,ownerPositioned);
+    if(not exceededDeadline){
+      .send(AuxiliarAgentName2,tell,ownerPositioned);
+    };
     // !checkThingAuxiliarArea;
     !waitAuxiliar(AuxiliarAgentName2);
     !checkAgentSetup(2);
@@ -241,13 +263,9 @@
 <-  Answer = false.
 
 +?checkDeadline(Answer) : accepted(TaskName,_) & task(TaskName,Deadline,_,_,_) & step(Step, _) & Step > Deadline & carrying(_,_,_)
-<-  .print("Entrando no check deadline");
-    !setupBlock(s);
-    .print("Bloco deveria estar no sul");
+<-  !setupBlock(s);
     !clearBlock;
-    .print("Deveria ter apagado bloco");
     .abolish(carrying(_,_,_));
-    .print("Deadline 3");
     Answer = false.
 
 +?checkDeadline(Answer) : accepted(TaskName,_) & not task(TaskName,_,_,_,_) & carrying(_,_,_)
@@ -344,11 +362,22 @@
     .nth(0,BTypeList,BlockType).
 
 ///////////////////////////////////////////////////////////////////////////
++!waitAuxiliar(AuxiliarAgentName) : exceededDeadline <- .print("exceededDeadline is working").
+
 +!waitAuxiliar(AuxiliarAgentName)
-<-  ?readyToConnect(AuxiliarAgentName).
+<-  ?checkDeadline(Active);
+    ?hasBlock(HasBlock);
+    if(Active & HasBlock){
+      ?readyToConnect(AuxiliarAgentName);
+    }else{
+      !abortAuxiliarAssist;
+      +exceededDeadline;
+    }.
 
 -!waitAuxiliar(AuxiliarAgentName) <- !performAction(skip);!waitAuxiliar(AuxiliarAgentName).
 ///////////////////////////////////////////////////////////////////////////
++!checkSetup: exceededDeadline <- .print("exceededDeadline is working").
+
 +!checkSetup: accepted(TaskName,_) & task(TaskName,_,_,Requirements,_)
 <-  for ( .member(req(XBlock,YBlock,BlockType),Requirements) ) {         // iteration
       ?thing(XBlock,YBlock,block,BlockType,_);
@@ -362,22 +391,38 @@
 
 -!checkAgentSetup(Order) <- !fixSetup(Order).
 ///////////////////////////////////////////////////////////////////////////
++!fixSetup(Order) : exceededDeadline <- .print("exceededDeadline is working").
 +!fixSetup(Order) : auxiliarPosition(AuxiliarAgentName1,XAgentPosition1,YAgentPosition1,Direction1,BlockType1,Order)
-<-  .my_name(MyName);
-    .abolish(readyToConnect(_));
-    .send(AuxiliarAgentName1,unachieve, skip);
-    .send(AuxiliarAgentName1,achieve,fixAuxiliarSetup(XAgentPosition1,YAgentPosition1,Direction1,MyName,BlockType1));
-    !waitAuxiliar(AuxiliarAgentName1);
-    .
+<-  ?checkDeadline(Active);
+    ?hasBlock(HasBlock);
+    if(Active & HasBlock){
+      .my_name(MyName);
+      .abolish(readyToConnect(_));
+      .send(AuxiliarAgentName1,unachieve, skip);
+      .send(AuxiliarAgentName1,achieve,fixAuxiliarSetup(XAgentPosition1,YAgentPosition1,Direction1,MyName,BlockType1));
+      !waitAuxiliar(AuxiliarAgentName1);
+    }else{
+      !abortAuxiliarAssist;
+      +exceededDeadline;
+    }.
 
++!fixSetup : exceededDeadline <- .print("exceededDeadline is working").
 +!fixSetup : auxiliarPosition(AuxiliarAgentName,XAgentPosition,YAgentPosition,Direction,BlockType,Order)
-<-  .my_name(MyName);
-    .abolish(readyToConnect(_));
-    .send(AuxiliarAgentName,unachieve, skip);
-    .send(AuxiliarAgentName,achieve,fixAuxiliarSetup(XAgentPosition,YAgentPosition,Direction,MyName,BlockType));
-    !waitAuxiliar(AuxiliarAgentName);
-    .
+<-  ?checkDeadline(Active);
+    ?hasBlock(HasBlock);
+    if(Active & HasBlock){
+      .my_name(MyName);
+      .abolish(readyToConnect(_));
+      .send(AuxiliarAgentName,unachieve, skip);
+      .send(AuxiliarAgentName,achieve,fixAuxiliarSetup(XAgentPosition,YAgentPosition,Direction,MyName,BlockType));
+      !waitAuxiliar(AuxiliarAgentName);
+    }else{
+      !abortAuxiliarAssist;
+      +exceededDeadline;
+    }.
 ///////////////////////////////////////////////////////////////////////////
++!connect : exceededDeadline <- .print("exceededDeadline is working").
+
 +!connect(Auxiliar, Order)
 <-  .send(Auxiliar,unachieve, skip);
     .send(Auxiliar,achieve,connectAuxiliar);
@@ -402,6 +447,8 @@
 -!connectOwner(Auxiliar, Order)<-!connectOwner(Auxiliar, Order).
 
 ///////////////////////////////////////////////////////////////////////////
++!checkObstacleAuxiliarArea : exceededDeadline <- .print("exceededDeadline is working").
+
 +!checkObstacleAuxiliarArea : accepted(TaskName,_) &
                       task(TaskName,_,_,Requirements,_) &
                       auxiliarPosition(AuxiliarAgentName1,XAgentPosition1,YAgentPosition1,Direction1,BlockType1,1) &
@@ -409,98 +456,115 @@
                       AuxiliarAgentName1 \== AuxiliarAgentName2 &
                       mapper(AuxiliarAgentName1,XMapper1,YMapper1) &
                       mapper(AuxiliarAgentName2,XMapper2,YMapper2)
-<-  .delete(req(0,1,_),Requirements,[req(XBlockA,YBlockA,_),req(XBlockB,YBlockB,_)]);
-    BlockDistanceA = (XBlockA)**2 + (YBlockA - 1)**2;
-    if(BlockDistanceA == 1){
-      XBlock1 = XBlockA;
-      YBlock1 = YBlockA;
-      XBlock2 = XBlockB;
-      YBlock2 = YBlockB;
-    }else{
-      XBlock1 = XBlockB;
-      YBlock1 = YBlockB;
-      XBlock2 = XBlockA;
-      YBlock2 = YBlockA;
-    }
-    .count(obstacle(XBlock1,YBlock1,_), BlockObstacle1);
-    .count(obstacle(XBlock2,YBlock2,_), BlockObstacle2);
-    ?getLastPosition(MyX,MyY);
-    XAuxiliar1 = XAgentPosition1 - XMapper1 - MyX;
-    YAuxiliar1 = YAgentPosition1 - YMapper1 - MyY;
-    XAuxiliar2 = XAgentPosition2 - XMapper2 - MyX;
-    YAuxiliar2 = YAgentPosition2 - YMapper2 - MyY;
-    .count(obstacle(XAuxiliar1,YAuxiliar1,_), AuxiliarObstacle1);
-    .count(obstacle(XAuxiliar2,YAuxiliar2,_), AuxiliarObstacle2);
-    if(BlockObstacle1>0 | AuxiliarObstacle1 > 0 | BlockObstacle2>0 | AuxiliarObstacle2 > 0){
-        .print("Goal Area is blocked");
-        +goalChanged;
-        !fixSubmitPosition;
-        !checkObstacleAuxiliarArea;
-    }elif(.count(goalChanged,Changed) & Changed > 0){
-        .print("Goal Area unblocked successfully");
-        .send(AuxiliarAgentName1,unachieve, goAssist(_,_,_,_));
-        .send(AuxiliarAgentName1,unachieve, fixAuxiliarSetup(_,_,_,_,_));
-        .send(AuxiliarAgentName2,unachieve, goAssist(_,_,_,_));
-        .send(AuxiliarAgentName2,unachieve, fixAuxiliarSetup(_,_,_,_,_));
-        .my_name(MyName);
-        if(XBlock1 == 0){
-          XAgentPositionNew1 = XGoal+XBlock1+XMapper1-1;
-          YAgentPositionNew1 = YGoal+YBlock1+YMapper1;
-          DirectionNew1 = e;
+<-  ?checkDeadline(Active);
+    ?hasBlock(HasBlock);
+    if(Active & HasBlock){
+      .delete(req(0,1,_),Requirements,[req(XBlockA,YBlockA,_),req(XBlockB,YBlockB,_)]);
+      BlockDistanceA = (XBlockA)**2 + (YBlockA - 1)**2;
+      if(BlockDistanceA == 1){
+        XBlock1 = XBlockA;
+        YBlock1 = YBlockA;
+        XBlock2 = XBlockB;
+        YBlock2 = YBlockB;
+      }else{
+        XBlock1 = XBlockB;
+        YBlock1 = YBlockB;
+        XBlock2 = XBlockA;
+        YBlock2 = YBlockA;
+      }
+      .count(obstacle(XBlock1,YBlock1,_), BlockObstacle1);
+      .count(obstacle(XBlock2,YBlock2,_), BlockObstacle2);
+      ?getLastPosition(MyX,MyY);
+      XAuxiliar1 = XAgentPosition1 - XMapper1 - MyX;
+      YAuxiliar1 = YAgentPosition1 - YMapper1 - MyY;
+      XAuxiliar2 = XAgentPosition2 - XMapper2 - MyX;
+      YAuxiliar2 = YAgentPosition2 - YMapper2 - MyY;
+      .count(obstacle(XAuxiliar1,YAuxiliar1,_), AuxiliarObstacle1);
+      .count(obstacle(XAuxiliar2,YAuxiliar2,_), AuxiliarObstacle2);
+      if(BlockObstacle1>0 | AuxiliarObstacle1 > 0 | BlockObstacle2>0 | AuxiliarObstacle2 > 0){
+          .print("Goal Area is blocked");
+          +goalChanged;
+          !fixSubmitPosition;
+          !checkObstacleAuxiliarArea;
+      }elif(.count(goalChanged,Changed) & Changed > 0){
+          .print("Goal Area unblocked successfully");
+          .send(AuxiliarAgentName1,unachieve, goAssist(_,_,_,_));
+          .send(AuxiliarAgentName1,unachieve, fixAuxiliarSetup(_,_,_,_,_));
+          .send(AuxiliarAgentName1,unachieve, connectAuxiliar);
+          .send(AuxiliarAgentName2,unachieve, goAssist(_,_,_,_));
+          .send(AuxiliarAgentName2,unachieve, fixAuxiliarSetup(_,_,_,_,_));
+          .send(AuxiliarAgentName2,unachieve, connectAuxiliar);
+          .my_name(MyName);
+          if(XBlock1 == 0){
+            XAgentPositionNew1 = XGoal+XBlock1+XMapper1-1;
+            YAgentPositionNew1 = YGoal+YBlock1+YMapper1;
+            DirectionNew1 = e;
+          }else{
+            XAgentPositionNew1 = XGoal+XBlock1+XMapper1;
+            YAgentPositionNew1 = YGoal+YBlock1+YMapper1-1;
+            DirectionNew1 = s;
+          }
+          if(XBlock2 < 0){
+            XAgentPositionNew2 = XGoal+XBlock2+XMapper2-1;
+            YAgentPositionNew2 = YGoal+YBlock2+YMapper2;
+            DirectionNew2 = e;
+          }else{
+            XAgentPositionNew2 = XGoal+XBlock2+XMapper2+1;
+            YAgentPositionNew2 = YGoal+YBlock2+YMapper2;
+            DirectionNew2 = w;
+          }
+          .abolish(auxiliarPosition(AuxiliarAgentName1,_,_,_,_,_));
+          .abolish(auxiliarPosition(AuxiliarAgentName2,_,_,_,_,_));
+          +auxiliarPosition(AuxiliarAgentName1,XAgentPositionNew1,YAgentPositionNew1,DirectionNew1,BlockType1,Order1);
+          +auxiliarPosition(AuxiliarAgentName2,XAgentPositionNew2,YAgentPositionNew2,DirectionNew2,BlockType2,Order2);
+          .send(AuxiliarAgentName1,achieve,fixAuxiliarSetup(XAgentPositionNew1,YAgentPositionNew1,DirectionNew1,MyName,BlockType1));
+          .send(AuxiliarAgentName2,achieve,fixAuxiliarSetup(XAgentPositionNew2,YAgentPositionNew2,DirectionNew2,MyName,BlockType2));
         }else{
-          XAgentPositionNew1 = XGoal+XBlock1+XMapper1;
-          YAgentPositionNew1 = YGoal+YBlock1+YMapper1-1;
-          DirectionNew1 = s;
+          !abortAuxiliarAssist;
+          +exceededDeadline;
         }
-        if(XBlock2 < 0){
-          XAgentPositionNew2 = XGoal+XBlock2+XMapper2-1;
-          YAgentPositionNew2 = YGoal+YBlock2+YMapper2;
-          DirectionNew2 = e;
-        }else{
-          XAgentPositionNew2 = XGoal+XBlock2+XMapper2+1;
-          YAgentPositionNew2 = YGoal+YBlock2+YMapper2;
-          DirectionNew2 = w;
-        }
-        .abolish(auxiliarPosition(AuxiliarAgentName1,_,_,_,_,_));
-        .abolish(auxiliarPosition(AuxiliarAgentName2,_,_,_,_,_));
-        +auxiliarPosition(AuxiliarAgentName1,XAgentPositionNew1,YAgentPositionNew1,DirectionNew1,BlockType1,Order1);
-        +auxiliarPosition(AuxiliarAgentName2,XAgentPositionNew2,YAgentPositionNew2,DirectionNew2,BlockType2,Order2);
-        .send(AuxiliarAgentName1,achieve,fixAuxiliarSetup(XAgentPositionNew1,YAgentPositionNew1,DirectionNew1,MyName,BlockType1));
-        .send(AuxiliarAgentName2,achieve,fixAuxiliarSetup(XAgentPositionNew2,YAgentPositionNew2,DirectionNew2,MyName,BlockType2));
     }.
 
 +!checkObstacleAuxiliarArea : accepted(TaskName,_) &
                       task(TaskName,_,_,Requirements,_) &
                       auxiliarPosition(AuxiliarAgentName,XAgentPosition,YAgentPosition,Direction,BlockType,Order) &
                       mapper(AuxiliarAgentName,XMapper,YMapper)
-<-  .delete(req(0,1,_),Requirements,[req(XBlock,YBlock,_)]);
-    .count(obstacle(XBlock,YBlock,_), BlockObstacle);
-    ?getLastPosition(MyX,MyY);
-    XAuxiliar = XAgentPosition - XMapper - MyX;
-    YAuxiliar = YAgentPosition - YMapper - MyY;
-    .count(obstacle(XAuxiliar,YAuxiliar,_), AuxiliarObstacle);
-    if(BlockObstacle>0 | AuxiliarObstacle > 0){
-        .print("Goal Area is blocked");
-        +goalChanged;
-        !fixSubmitPosition;
-        !checkObstacleAuxiliarArea;
-    }elif(.count(goalChanged,Changed) & Changed > 0){
-        .print("Goal Area unblocked successfully");
-        .send(AuxiliarAgentName,unachieve, goAssist(_,_,_,_));
-        .send(AuxiliarAgentName,unachieve, fixAuxiliarSetup(_,_,_,_,_));
-        .my_name(MyName);
-        if(XBlock == 0){
-          XAgentPositionNew = MyX+XBlock+XMapper-1;
-          YAgentPositionNew = MyY+YBlock+YMapper;
-          DirectionNew = e;
-        }else{
-          XAgentPositionNew = MyX+XBlock+XMapper;
-          YAgentPositionNew = MyY+YBlock+YMapper-1;
-          DirectionNew = s;
-        }
-        .abolish(auxiliarPosition(AuxiliarAgentName,_,_,_,_,_));
-        +auxiliarPosition(AuxiliarAgentName,XAgentPositionNew,YAgentPositionNew,DirectionNew,BlockType,Order);
-        .send(AuxiliarAgentName,achieve,fixAuxiliarSetup(XAgentPositionNew,YAgentPositionNew,DirectionNew,MyName,BlockType));
+<-  ?checkDeadline(Active);
+    ?hasBlock(HasBlock);
+    if(Active & HasBlock){
+      .delete(req(0,1,_),Requirements,[req(XBlock,YBlock,_)]);
+      .count(obstacle(XBlock,YBlock,_), BlockObstacle);
+      ?getLastPosition(MyX,MyY);
+      XAuxiliar = XAgentPosition - XMapper - MyX;
+      YAuxiliar = YAgentPosition - YMapper - MyY;
+      .count(obstacle(XAuxiliar,YAuxiliar,_), AuxiliarObstacle);
+      if(BlockObstacle>0 | AuxiliarObstacle > 0){
+          .print("Goal Area is blocked");
+          +goalChanged;
+          !fixSubmitPosition;
+          !checkObstacleAuxiliarArea;
+      }elif(.count(goalChanged,Changed) & Changed > 0){
+          .print("Goal Area unblocked successfully");
+          .send(AuxiliarAgentName,unachieve, goAssist(_,_,_,_));
+          .send(AuxiliarAgentName,unachieve, fixAuxiliarSetup(_,_,_,_,_));
+          .send(AuxiliarAgentName,unachieve,connectAuxiliar);
+          .my_name(MyName);
+          if(XBlock == 0){
+            XAgentPositionNew = MyX+XBlock+XMapper-1;
+            YAgentPositionNew = MyY+YBlock+YMapper;
+            DirectionNew = e;
+          }else{
+            XAgentPositionNew = MyX+XBlock+XMapper;
+            YAgentPositionNew = MyY+YBlock+YMapper-1;
+            DirectionNew = s;
+          }
+          .abolish(auxiliarPosition(AuxiliarAgentName,_,_,_,_,_));
+          +auxiliarPosition(AuxiliarAgentName,XAgentPositionNew,YAgentPositionNew,DirectionNew,BlockType,Order);
+          .send(AuxiliarAgentName,achieve,fixAuxiliarSetup(XAgentPositionNew,YAgentPositionNew,DirectionNew,MyName,BlockType));
+      }
+    }else{
+      !abortAuxiliarAssist;
+      +exceededDeadline;
     }.
 
 +!fixSubmitPosition : goal(0,-1,Time)
@@ -515,40 +579,48 @@
 +!fixSubmitPosition : goal(0,1,Time)
 <-  !performAction(move(w)).
 
++!fixSubmitPosition
+<-  if(exceededDeadline){
+      .print("------------------------->Tem exceededDeadline no fixSubmitPosition");
+    }else{
+      .print("------------------------->Não tem exceededDeadline no fixSubmitPosition");
+    }.
+
+
 ///////////////////////////////////////////////////////////////////////////
 
-+!checkThingAuxiliarArea : accepted(TaskName,_) &
-                      task(TaskName,_,_,Requirements,_) &
-                      auxiliarPosition(AuxiliarAgentName,XAgentPosition,YAgentPosition,Direction,BlockType,Order) &
-                      mapper(AuxiliarAgentName,XMapper,YMapper)
-<-  .delete(req(0,1,_),Requirements,[req(XBlock,YBlock,_)]);
-    .count(obstacle(XBlock,YBlock,_), BlockObstacle);
-    ?getLastPosition(MyX,MyY);
-    XAuxiliar = XAgentPosition - XMapper - MyX;
-    YAuxiliar = YAgentPosition - YMapper - MyY;
-    .count(obstacle(XAuxiliar,YAuxiliar,_), AuxiliarObstacle);
-    if(BlockObstacle>0 | AuxiliarObstacle > 0){
-        .print("Goal Area is blocked");
-        +goalChanged;
-        !fixSubmitPosition;
-        !checkObstacleAuxiliarArea;
-    }elif(.count(goalChanged,Changed) & Changed > 0){
-        .print("Goal Area unblocked successfully");
-        .send(AuxiliarAgentName,unachieve, goAssist(_,_,_,_));
-        .my_name(MyName);
-        if(XBlock == 0){
-          XAgentPositionNew = MyX+XBlock+XMapper-1;
-          YAgentPositionNew = MyY+YBlock+YMapper;
-          DirectionNew = e;
-        }else{
-          XAgentPositionNew = MyX+XBlock+XMapper;
-          YAgentPositionNew = MyY+YBlock+YMapper-1;
-          DirectionNew = s;
-        }
-        .abolish(auxiliarPosition(AuxiliarAgentName,_,_,_,_,_));
-        +auxiliarPosition(AuxiliarAgentName,XAgentPositionNew,YAgentPositionNew,DirectionNew,BlockType,Order);
-        .send(AuxiliarAgentName,achieve,fixAuxiliarSetup(XAgentPositionNew,YAgentPositionNew,DirectionNew,MyName,BlockType));
-    }.
+// +!checkThingAuxiliarArea : accepted(TaskName,_) &
+//                       task(TaskName,_,_,Requirements,_) &
+//                       auxiliarPosition(AuxiliarAgentName,XAgentPosition,YAgentPosition,Direction,BlockType,Order) &
+//                       mapper(AuxiliarAgentName,XMapper,YMapper)
+// <-  .delete(req(0,1,_),Requirements,[req(XBlock,YBlock,_)]);
+//     .count(obstacle(XBlock,YBlock,_), BlockObstacle);
+//     ?getLastPosition(MyX,MyY);
+//     XAuxiliar = XAgentPosition - XMapper - MyX;
+//     YAuxiliar = YAgentPosition - YMapper - MyY;
+//     .count(obstacle(XAuxiliar,YAuxiliar,_), AuxiliarObstacle);
+//     if(BlockObstacle>0 | AuxiliarObstacle > 0){
+//         .print("Goal Area is blocked");
+//         +goalChanged;
+//         !fixSubmitPosition;
+//         !checkObstacleAuxiliarArea;
+//     }elif(.count(goalChanged,Changed) & Changed > 0){
+//         .print("Goal Area unblocked successfully");
+//         .send(AuxiliarAgentName,unachieve, goAssist(_,_,_,_));
+//         .my_name(MyName);
+//         if(XBlock == 0){
+//           XAgentPositionNew = MyX+XBlock+XMapper-1;
+//           YAgentPositionNew = MyY+YBlock+YMapper;
+//           DirectionNew = e;
+//         }else{
+//           XAgentPositionNew = MyX+XBlock+XMapper;
+//           YAgentPositionNew = MyY+YBlock+YMapper-1;
+//           DirectionNew = s;
+//         }
+//         .abolish(auxiliarPosition(AuxiliarAgentName,_,_,_,_,_));
+//         +auxiliarPosition(AuxiliarAgentName,XAgentPositionNew,YAgentPositionNew,DirectionNew,BlockType,Order);
+//         .send(AuxiliarAgentName,achieve,fixAuxiliarSetup(XAgentPositionNew,YAgentPositionNew,DirectionNew,MyName,BlockType));
+//     }.
 
 ///////////////////////////////////////////////////////////////////////////
 +!clearSubmittedInformation
@@ -558,3 +630,14 @@
     .broadcast(untell,acceptedTask(MyName, _));
     .abolish(exceededDeadline);
     .abolish(readyToConnect(_)).
+
+//////////////////////////////////Abort Auxiliar /////////////////////////////////////////
++!abortAuxiliarAssist
+<-  for(auxiliarPosition(AuxiliarAgentName,XAgentPosition,YAgentPosition,Direction,BlockType,Order) ){
+      .send(AuxiliarAgentName,unachieve, goAssist(_,_,_,_));
+      .send(AuxiliarAgentName,unachieve, fixAuxiliarSetup(_,_,_,_,_));
+      .send(AuxiliarAgentName,unachieve, connectAuxiliar);
+
+      .send(AuxiliarAgentName,achieve, stopAndRestart);
+    };
+    .abolish(auxiliarPosition(_,_,_,_,_,_)).

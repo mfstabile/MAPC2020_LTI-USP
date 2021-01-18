@@ -68,7 +68,8 @@ blockBlocked(w) :- carrying(Xblock,Yblock,T) &
 -!chooseDirection <- !performAction(skip);!chooseDirection.
 
 +!startMovement
-<-	!chooseDirection;
+<-	.set_random_seed(20);
+    !chooseDirection;
 		!randomWalk.
 
 +!randomWalk : not noMoreOwners &

@@ -50,18 +50,19 @@
                           carryBlockTo(XTarget,YTarget) &
                           not ownerPositioned
 <-  ?getLastPosition(XPosition,YPosition);
-    Distance = (((XTarget-XPosition)**2 + (YTarget-YPosition)**2)**0.5)
-    if(Distance <10){
-      !performAction(skip);
-      !verifyTargetOccupation;
-    }
     ?hasBlock(HasBlock);
     if(not HasBlock){
       .abolish(carrying(_,_,_));
       ?blockType(BlockType);
       !goToDispenser(BlockType);
       !getBlock;
-    }.
+    };
+    Distance = (((XTarget-XPosition)**2 + (YTarget-YPosition)**2)**0.5)
+    if(Distance <10){
+      !performAction(skip);
+      !verifyTargetOccupation;
+    }
+    .
 //////////////////////////////Owner/////////////////////////////////////////////
 //Check if the agent still carries the block
 +!checkBlock(Continue)
@@ -69,15 +70,25 @@
     if(not HasBlock){
       .abolish(carrying(_,_,_));
       ?accepted(TaskName,_);
-      ?task(TaskName,Deadline,_,_,_);
-      ?step(Step, _);
-      //verify if there is time for recovering
-      //40 is an arbitrary value
-      if(Step+40 < Deadline){
-        !getOwnerBlockType(BlockType);
-        !goToDispenser(BlockType);
-        !getBlock;
-        Continue = true;
+      if (task(TaskName,Deadline,_,_,_)){
+        ?step(Step, _);
+        //verify if there is time for recovering
+        //40 is an arbitrary value
+        if(Step+40 < Deadline){
+          !getOwnerBlockType(BlockType);
+          !goToDispenser(BlockType);
+          !getBlock;
+          Continue = true;
+        }else{
+          //cancel all
+          +exceededDeadline;
+          Continue = false;
+          ?getLastPosition(MyX,MyY);
+          .abolish(carryBlockTo(_,_));
+          +carryBlockTo(MyX,MyY);
+          !clearBlock;
+          !abortAuxiliarAssist;
+        }
       }else{
         //cancel all
         +exceededDeadline;
@@ -85,13 +96,8 @@
         ?getLastPosition(MyX,MyY);
         .abolish(carryBlockTo(_,_));
         +carryBlockTo(MyX,MyY);
-        for(auxiliarPosition(AuxiliarAgentName,XAgentPosition,YAgentPosition,Direction,BlockType,Order) ){
-          .send(AuxiliarAgentName,unachieve,goAssist);
-          .send(AuxiliarAgentName,unachieve,fixAuxiliarSetup);
-          .send(AuxiliarAgentName,unachieve,connectAuxiliar);
-
-          .send(AuxiliarAgentName,achieve, stopAndRestart);
-        }
+        !clearBlock;
+        !abortAuxiliarAssist;
       }
     }.
 //Verify Goal position if it is blocked with other agent/block
@@ -113,8 +119,10 @@
         +carryBlockTo(XNearGoal,YNearGoal);
         .send(AuxiliarAgentName1,unachieve, goAssist(_,_,_,_));
         .send(AuxiliarAgentName1,unachieve, fixAuxiliarSetup(_,_,_,_,_));
+        .send(AuxiliarAgentName1,unachieve,connectAuxiliar);
         .send(AuxiliarAgentName2,unachieve, goAssist(_,_,_,_));
         .send(AuxiliarAgentName2,unachieve, fixAuxiliarSetup(_,_,_,_,_));
+        .send(AuxiliarAgentName2,unachieve,connectAuxiliar);
         .my_name(MyName);
         ?accepted(TaskName,_);
         ?task(TaskName,_,_,Requirements,_);
@@ -177,6 +185,7 @@
         +carryBlockTo(XNearGoal,YNearGoal);
         .send(AuxiliarAgentName,unachieve, goAssist(_,_,_,_));
         .send(AuxiliarAgentName,unachieve, fixAuxiliarSetup(_,_,_,_,_));
+        .send(AuxiliarAgentName,unachieve,connectAuxiliar);
         .my_name(MyName);
         ?accepted(TaskName,_);
         ?task(TaskName,_,_,Requirements,_);
@@ -199,6 +208,14 @@
     .
 
 +!verifyTargetOccupation <- true.
+
+-!verifyTargetOccupation : accepted(TaskName,_)
+<- +exceededDeadline;
+    ?getLastPosition(MyX,MyY);
+    .abolish(carryBlockTo(_,_));
+    +carryBlockTo(MyX,MyY);
+    !clearBlock;
+    !abortAuxiliarAssist.
 
 +!chooseAvailableGoal(XNearGoal,YNearGoal)
 <-  ?getLastPosition(MyX,MyY);

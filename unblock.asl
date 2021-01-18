@@ -258,9 +258,9 @@
     }
     ?carrying(-1,0,Time).
 
-+!unblockBlock(w) <- !dodge(n).
-+!unblockBlock(e) <- !dodge(s).
-+!unblockBlock(n) <- !dodge(e).
-+!unblockBlock(s) <- !dodge(w).
++!unblockBlock(w) <- !dodgeWithBlock(n).
++!unblockBlock(e) <- !dodgeWithBlock(s).
++!unblockBlock(n) <- !dodgeWithBlock(e).
++!unblockBlock(s) <- !dodgeWithBlock(w).
 
 -!unblockBlock(Direction)<- !unblockBlock(Direction).
