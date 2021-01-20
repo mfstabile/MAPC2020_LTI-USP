@@ -2,8 +2,7 @@
 <-  .print("Achieving");
     !goToTaskboard;
     !getTask;
-    ?accepted(TaskName,_);
-    ?task(TaskName,_,_,Requirements,_);
+    ?taskAccepted(TaskName,_,_,Requirements);
     .length(Requirements, RequirementsSize);
     !executeTask(RequirementsSize);
     .print("Task Achieved").
@@ -16,6 +15,7 @@
     !checkGoalPosition;
     !submitTask;
     .abolish(carrying(_,_,_));
+    .abolish(carryingBlock);
     !!achieveTask.
 
 +!executeTask(2)
@@ -48,7 +48,9 @@
     !checkSetup;
     !connect(AuxiliarAgentName,1);
     !submitTask;
+    .print("abolish carrying 3");
     .abolish(carrying(_,_,_));
+    .abolish(carryingBlock);
     .print("Deveria ter entregue a task");
     !clearSubmittedInformation;
     !!achieveTask;
@@ -95,7 +97,9 @@
     !checkAgentSetup(2);
     !connect(AuxiliarAgentName2,2);
     !submitTask;
+    .print("abolish carrying 4");
     .abolish(carrying(_,_,_));
+    .abolish(carryingBlock);
     .print("Deveria ter entregue a task");
     !clearSubmittedInformation;
     !!achieveTask;
@@ -111,6 +115,21 @@
     !goToPosition(XNearTask, YNearTask).
 
 ///////////////////////////////////////////////////////////////////////////
+// +!getTask
+// <-  .findall(IntTaskNumber,task(TaskName,_,_,_,_) & not acceptedTask(_,TaskName) & .delete("task",TaskName,TaskNumber) & .term2string(IntTaskNumber,TaskNumber),TaskNameList);
+//     if(.empty(TaskNameList))
+//     {
+//       !performAction(skip);
+//       !getTask;
+//     }
+//     else{
+//       .max(TaskNameList,MaxTaskNumber);
+//       .concat("task",MaxTaskNumber,MaxTask);
+//       !performAction(accept(MaxTask));
+//       .term2string(MaxTaskTerm,MaxTask);
+//       !verifyAccepted(MaxTaskTerm);
+//     }.
+
 +!getTask
 <-  .findall(IntTaskNumber,task(TaskName,_,_,_,_) & not acceptedTask(_,TaskName) & .delete("task",TaskName,TaskNumber) & .term2string(IntTaskNumber,TaskNumber),TaskNameList);
     if(.empty(TaskNameList))
@@ -119,22 +138,40 @@
       !getTask;
     }
     else{
-      .max(TaskNameList,MaxTaskNumber);
-      .concat("task",MaxTaskNumber,MaxTask);
-      !performAction(accept(MaxTask));
-      .term2string(MaxTaskTerm,MaxTask);
-      !verifyAccepted(MaxTaskTerm);
+      .sort(TaskNameList,SortedTaskNameList);
+      .reverse(SortedTaskNameList,ReversedTaskNameList);
+      !getNthTask(0,TaskNameList,SelectedTask);
+      !performAction(accept(SelectedTask));
+      .term2string(SelectedTaskTerm,SelectedTask);
+      !verifyAccepted(SelectedTaskTerm);
     }.
 
++!getNthTask(3,TaskNameList,Task) <- .print("Size 2 task not found");.max(TaskNameList,TaskNumber);.concat("task",TaskNumber,Task).
 
-+!verifyAccepted(MaxTask) : accepted(MaxTask,_)
++!getNthTask(N,TaskNameList,Task) : .length(TaskNameList,Len) & Len > N
+  <-  .nth(N,TaskNameList,TaskNumber);
+      .concat("task",TaskNumber,TaskName);
+      .term2string(TaskNameTerm,TaskName);
+      ?task(TaskNameTerm,_,_,TaskRequirements,_);
+      if(.length(TaskRequirements,TaskLen) & TaskLen == 2){
+          .print("Size 2 task found");
+          Task = TaskName;
+      }else{
+        !getNthTask(N+1,TaskNameList,Task);
+      }.
+
++!getNthTask(N,TaskNameList,Task) <- .print("Size 2 task not found - insuficcient length");.max(TaskNameList,TaskNumber);.concat("task",TaskNumber,Task).
+
+
++!verifyAccepted(MaxTask) : accepted(MaxTask,_) & task(MaxTask,TaskDeadline,TaskReward,TaskRequirements,_)
 <-  .my_name(MyName);
-    .broadcast(tell,acceptedTask(MyName, MaxTask)).
+    .broadcast(tell,acceptedTask(MyName, MaxTask));
+    +taskAccepted(MaxTask,TaskDeadline,TaskReward,TaskRequirements).
 
 +!verifyAccepted(MaxTask) <- !getTask.
 
 ///////////////////////////////////////////////////////////////////////////
-+!goToDispenser(1) : accepted(TaskName,_) & task(TaskName,_,_,[req(0,1,DispType)],_)
++!goToDispenser(1) : accepted(TaskName,_) & taskAccepted(TaskName,_,_,[req(0,1,DispType)])
 <-  ?getLastPosition(MyX,MyY);
     .setof(g(((XDisp-MyX)**2)+((YDisp-MyY)**2),XDisp,YDisp),dispenser(XDisp,YDisp,DispType),DispList);
     .min(DispList,g(Dist,XNearDisp,YNearDisp));
@@ -156,13 +193,18 @@
     !goToPosition(XDispenser-XMapper,YDispenser-YMapper).
 
 ///////////////////////////////////////////////////////////////////////////
-+!getBlock
++!getBlock : accepted(TaskName,_)
 <-  ?checkDeadline(Active);
     if(Active){
       !shift(Direction);
       !requestBlock(Direction);
       !attachBlock(Direction);
     }.
+
++!getBlock : .my_name(MyName) & auxiliar(MyName,TaskOwnerName)
+<-  !shift(Direction);
+    !requestBlock(Direction);
+    !attachBlock(Direction).
 
 +!shift(Direction) :  not blocked(s) <- !performAction(move(s)); ?thing(0,-1,dispenser,_,_); Direction = n.
 +!shift(Direction) :  not blocked(n) <- !performAction(move(n)); ?thing(0,1,dispenser,_,_); Direction = s.
@@ -178,10 +220,10 @@
 
 -!requestBlock(Direction) <- !requestBlock(Direction).
 
-+!attachBlock(n) : step(_,Time) <- !performAction(attach(n));?attached(0,-1,_);+carrying(0,-1,Time).
-+!attachBlock(s) : step(_,Time) <- !performAction(attach(s));?attached(0,1,_);+carrying(0,1,Time).
-+!attachBlock(e) : step(_,Time) <- !performAction(attach(e));?attached(1,0,_);+carrying(1,0,Time).
-+!attachBlock(w) : step(_,Time) <- !performAction(attach(w));?attached(-1,0,_);+carrying(-1,0,Time).
++!attachBlock(n) : step(_,Time) <- !performAction(attach(n));?attached(0,-1,_);+carrying(0,-1,Time);+carryingBlock.
++!attachBlock(s) : step(_,Time) <- !performAction(attach(s));?attached(0,1,_);+carrying(0,1,Time);+carryingBlock.
++!attachBlock(e) : step(_,Time) <- !performAction(attach(e));?attached(1,0,_);+carrying(1,0,Time);+carryingBlock.
++!attachBlock(w) : step(_,Time) <- !performAction(attach(w));?attached(-1,0,_);+carrying(-1,0,Time);+carryingBlock.
 
 -!attachBlock(Direction) <- !attachBlock(Direction).
 
@@ -215,13 +257,13 @@
       !checkGoalPosition;
     }.
 ///////////////////////////////////////////////////////////////////////////
-+!submitTask : accepted(TaskName,_) & task(TaskName,_,_,_,_)
++!submitTask : accepted(TaskName,_) & taskAccepted(TaskName,_,_,_)
 <-  ?checkDeadline(Active);
     ?hasBlock(HasBlock);
     if(Active & HasBlock){
       !performAction(submit(TaskName));
       .count(task(TaskName,_,_,_,_), 0);
-      .print("Task submitted ",TaskName);
+      .print("----------------------------------->TASK SUBMITTED ",TaskName);
     }else{
       .print("submit failed ", Active, HasBlock);
     }.
@@ -260,19 +302,23 @@
 
 
 +?checkDeadline(Answer) : exceededDeadline
-<-  Answer = false.
+<-  .print("Deadline false : exceededDeadline");Answer = false.
 
 +?checkDeadline(Answer) : accepted(TaskName,_) & task(TaskName,Deadline,_,_,_) & step(Step, _) & Step > Deadline & carrying(_,_,_)
 <-  !setupBlock(s);
     !clearBlock;
+    .print("abolish carrying 5");
     .abolish(carrying(_,_,_));
+    .abolish(carryingBlock);
     Answer = false.
 
 +?checkDeadline(Answer) : accepted(TaskName,_) & not task(TaskName,_,_,_,_) & carrying(_,_,_)
 <-  !setupBlock(s);
     !performAction(detach(s));
     !clearBlock;
+    .print("abolish carrying 6");
     .abolish(carrying(_,_,_));
+    .abolish(carryingBlock);
     .print("Deadline 4");
     Answer = false.
 
@@ -280,7 +326,7 @@
 +?checkDeadline(Answer) : accepted(TaskName,_) & not task(TaskName,Deadline,_,_,_) & step(Step, _) <- .print("Deadline 2");Answer = false.
 +?checkDeadline(Answer) : accepted(TaskName,_) & task(TaskName,Deadline,_,_,_) & step(Step, _) <- Answer = true.
 
-+?hasBlock(Answer) : step(_,Time) & not carrying(_,_,Time) &
++?hasBlock(Answer) : step(_,Time) & not carrying(_,_,Time) & carryingBlock &
                     (thing(0,1,block,_,Time) | thing(0,-1,block,_,Time) | thing(1,0,block,_,Time) | thing(-1,0,block,_,Time))
 <- .wait("+carrying(_,_,Time)",10,Arg);?hasBlock(Answer).
 
@@ -300,16 +346,27 @@
     else{
       .nth(0,AvailableAgents,AuxiliarAgent);
       .my_name(MyName);
-      .send(AuxiliarAgent,askOne,canAssist(MyName,Answer),canAssist(MyName, Answer));
-      if(not Answer){
-        !chooseAgent;
+
+      .send(AuxiliarAgent,askOne,canAssist(MyName,AnswerLiteral),AnswerLiteral,4000);
+      if(AnswerLiteral==timeout){
+        if(not auxiliar(AuxiliarAgent,MyName)){
+          !chooseAgent;
+        }
+      }else{
+      	canAssist(Name,Answer) = AnswerLiteral;
+        if(Answer == mapper){
+          .abolish(mapper(AuxiliarAgent,_,_));
+          !chooseAgent;
+        }elif(Answer == false){
+          !chooseAgent;
+        }
       }
     }.
 
 ///////////////////////////////////////////////////////////////////////////
 +!setAvailableRequirements
 <-  ?accepted(TaskName,_);
-    ?task(TaskName,_,_,Requirements,_);
+    ?taskAccepted(TaskName,_,_,Requirements);
     .delete(req(0,1,_),Requirements,RemainingRequirements);
     +requirementAvailable(RemainingRequirements).
 ///////////////////////////////////////////////////////////////////////////
@@ -357,7 +414,7 @@
 
 +!getOwnerBlockType(BlockType)
 <-  ?accepted(TaskName,_);
-    ?task(TaskName,_,_,Requirements,_);
+    ?taskAccepted(TaskName,_,_,Requirements);
     .findall(BType, .member(req(0,1,BType),Requirements), BTypeList);
     .nth(0,BTypeList,BlockType).
 
@@ -378,7 +435,7 @@
 ///////////////////////////////////////////////////////////////////////////
 +!checkSetup: exceededDeadline <- .print("exceededDeadline is working").
 
-+!checkSetup: accepted(TaskName,_) & task(TaskName,_,_,Requirements,_)
++!checkSetup: accepted(TaskName,_) & taskAccepted(TaskName,_,_,Requirements)
 <-  for ( .member(req(XBlock,YBlock,BlockType),Requirements) ) {         // iteration
       ?thing(XBlock,YBlock,block,BlockType,_);
     };
@@ -450,7 +507,7 @@
 +!checkObstacleAuxiliarArea : exceededDeadline <- .print("exceededDeadline is working").
 
 +!checkObstacleAuxiliarArea : accepted(TaskName,_) &
-                      task(TaskName,_,_,Requirements,_) &
+                      taskAccepted(TaskName,_,_,Requirements) &
                       auxiliarPosition(AuxiliarAgentName1,XAgentPosition1,YAgentPosition1,Direction1,BlockType1,1) &
                       auxiliarPosition(AuxiliarAgentName2,XAgentPosition2,YAgentPosition2,Direction2,BlockType2,2) &
                       AuxiliarAgentName1 \== AuxiliarAgentName2 &
@@ -488,6 +545,8 @@
           !checkObstacleAuxiliarArea;
       }elif(.count(goalChanged,Changed) & Changed > 0){
           .print("Goal Area unblocked successfully");
+          .print(AuxiliarAgentName1," unachieve 3");
+          .print(AuxiliarAgentName2," unachieve 3");
           .send(AuxiliarAgentName1,unachieve, goAssist(_,_,_,_));
           .send(AuxiliarAgentName1,unachieve, fixAuxiliarSetup(_,_,_,_,_));
           .send(AuxiliarAgentName1,unachieve, connectAuxiliar);
@@ -519,6 +578,8 @@
           +auxiliarPosition(AuxiliarAgentName2,XAgentPositionNew2,YAgentPositionNew2,DirectionNew2,BlockType2,Order2);
           .send(AuxiliarAgentName1,achieve,fixAuxiliarSetup(XAgentPositionNew1,YAgentPositionNew1,DirectionNew1,MyName,BlockType1));
           .send(AuxiliarAgentName2,achieve,fixAuxiliarSetup(XAgentPositionNew2,YAgentPositionNew2,DirectionNew2,MyName,BlockType2));
+          .print(AuxiliarAgentName1," fixAuxiliarSetup");
+          .print(AuxiliarAgentName2," fixAuxiliarSetup");
         }else{
           !abortAuxiliarAssist;
           +exceededDeadline;
@@ -526,7 +587,7 @@
     }.
 
 +!checkObstacleAuxiliarArea : accepted(TaskName,_) &
-                      task(TaskName,_,_,Requirements,_) &
+                      taskAccepted(TaskName,_,_,Requirements) &
                       auxiliarPosition(AuxiliarAgentName,XAgentPosition,YAgentPosition,Direction,BlockType,Order) &
                       mapper(AuxiliarAgentName,XMapper,YMapper)
 <-  ?checkDeadline(Active);
@@ -545,6 +606,7 @@
           !checkObstacleAuxiliarArea;
       }elif(.count(goalChanged,Changed) & Changed > 0){
           .print("Goal Area unblocked successfully");
+          .print(AuxiliarAgentName," unachieve 4");
           .send(AuxiliarAgentName,unachieve, goAssist(_,_,_,_));
           .send(AuxiliarAgentName,unachieve, fixAuxiliarSetup(_,_,_,_,_));
           .send(AuxiliarAgentName,unachieve,connectAuxiliar);
@@ -561,6 +623,7 @@
           .abolish(auxiliarPosition(AuxiliarAgentName,_,_,_,_,_));
           +auxiliarPosition(AuxiliarAgentName,XAgentPositionNew,YAgentPositionNew,DirectionNew,BlockType,Order);
           .send(AuxiliarAgentName,achieve,fixAuxiliarSetup(XAgentPositionNew,YAgentPositionNew,DirectionNew,MyName,BlockType));
+          .print(AuxiliarAgentName," fixAuxiliarSetup");
       }
     }else{
       !abortAuxiliarAssist;
@@ -578,14 +641,6 @@
 
 +!fixSubmitPosition : goal(0,1,Time)
 <-  !performAction(move(w)).
-
-+!fixSubmitPosition
-<-  if(exceededDeadline){
-      .print("------------------------->Tem exceededDeadline no fixSubmitPosition");
-    }else{
-      .print("------------------------->Não tem exceededDeadline no fixSubmitPosition");
-    }.
-
 
 ///////////////////////////////////////////////////////////////////////////
 
@@ -629,15 +684,18 @@
     .my_name(MyName);
     .broadcast(untell,acceptedTask(MyName, _));
     .abolish(exceededDeadline);
-    .abolish(readyToConnect(_)).
+    .abolish(readyToConnect(_));
+    .abolish(taskAccepted(_,_,_,_)).
 
 //////////////////////////////////Abort Auxiliar /////////////////////////////////////////
 +!abortAuxiliarAssist
 <-  for(auxiliarPosition(AuxiliarAgentName,XAgentPosition,YAgentPosition,Direction,BlockType,Order) ){
+      .print(AuxiliarAgentName," unachieve 5");
       .send(AuxiliarAgentName,unachieve, goAssist(_,_,_,_));
       .send(AuxiliarAgentName,unachieve, fixAuxiliarSetup(_,_,_,_,_));
       .send(AuxiliarAgentName,unachieve, connectAuxiliar);
 
       .send(AuxiliarAgentName,achieve, stopAndRestart);
+      .print(AuxiliarAgentName," stopAndRestart");
     };
     .abolish(auxiliarPosition(_,_,_,_,_,_)).

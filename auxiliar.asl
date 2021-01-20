@@ -1,14 +1,18 @@
-+?canAssist(TaskOwnerName,Answer) : .my_name(MyName) & not taskowner(MyName) & not auxiliar(MyName,_)
++?canAssist(TaskOwnerName,Answer) : .my_name(MyName) & not taskowner(MyName) & not auxiliar(MyName,_) & mapper(TaskOwnerName,_,_)
 <-  +auxiliar(MyName,TaskOwnerName);
     .broadcast(tell,auxiliar(MyName,TaskOwnerName));
     .print("Assisting -> ", TaskOwnerName);
     Answer = true.
 
++?canAssist(TaskOwnerName,Answer) : .my_name(MyName) & not taskowner(MyName) & not auxiliar(MyName,_) & not mapper(TaskOwnerName,_,_)
+<-  Answer = mapper.
+
 +?canAssist(TaskOwnerName,Answer) <- Answer = false.
 
 ///////////////////////////////////////////////////////////////////////////
 +!goAssist(XAgentPosition,YAgentPosition,BlockType,BlockDirection)
-<-  +blockType(BlockType);
+<-  .print("started goAssist");
+    +blockType(BlockType);
     !goToDispenser(BlockType);
     !getBlock;
     .my_name(MyName);
@@ -26,70 +30,26 @@
 
 
 ///////////////////////////////////////////////////////////////////////////
-+?checkDeadline(Answer) : .my_name(MyName) & auxiliar(MyName,TaskOwnerName) & acceptedTask(TaskOwnerName, TaskName) & task(TaskName,Deadline,_,_,_) & step(Step, _) & Step > Deadline & carrying(_,_,_)
-<-  .print("Entrando no check deadline");
-    !setupBlock(s);
-    .print("Bloco deveria estar no sul");
-    !clearBlockAuxiliar;
-    .print("Deveria ter apagado bloco");
-    .abolish(carrying(_,_,_));
-    .print("Deadline Auxiliar 3");
-
-    // .wait("+nunca");
-
-    .abolish(ownerPositioned);
-    .abolish(blockType(_));
-    .abolish(auxiliar(MyName,TaskOwnerName));
-    .print("Erasing auxiliar to ",TaskOwnerName);
-    .broadcast(untell,auxiliar(MyName,TaskOwnerName));
-    Answer = false.
-
-+?checkDeadline(Answer) : .my_name(MyName) & auxiliar(MyName,TaskOwnerName) & acceptedTask(TaskOwnerName, TaskName) & not task(TaskName,_,_,_,_) & carrying(_,_,_)
-<-  !setupBlock(s);
-    !performAction(detach(s));
-    !clearBlockAuxiliar;
-    .abolish(carrying(_,_,_));
-    .print("Deadline Auxiliar 4");
-    .abolish(ownerPositioned);
-    .abolish(blockType(_));
-    .abolish(auxiliar(MyName,TaskOwnerName));
-    .print("Erasing auxiliar to ",TaskOwnerName);
-    .broadcast(untell,auxiliar(MyName,TaskOwnerName));
-    Answer = false.
-
-+?checkDeadline(Answer) : .my_name(MyName) & auxiliar(MyName,TaskOwnerName) & acceptedTask(TaskOwnerName, TaskName) & task(TaskName,Deadline,_,_,_) & step(Step, _) & Step > Deadline
-  <- .print("Deadline Auxiliar 1");
-     .abolish(ownerPositioned);
-     .abolish(blockType(_));
-     .abolish(auxiliar(MyName,TaskOwnerName));
-     .print("Erasing auxiliar to ",TaskOwnerName);
-     .broadcast(untell,auxiliar(MyName,TaskOwnerName));
-     Answer = false.
-+?checkDeadline(Answer) : .my_name(MyName) & auxiliar(MyName,TaskOwnerName) & acceptedTask(TaskOwnerName, TaskName) & not task(TaskName,Deadline,_,_,_) & step(Step, _)
-  <- .print("Deadline Auxiliar 2");
-     .abolish(ownerPositioned);
-     .abolish(blockType(_));
-     .abolish(auxiliar(MyName,TaskOwnerName));
-     .print("Erasing auxiliar to ",TaskOwnerName);
-     .broadcast(untell,auxiliar(MyName,TaskOwnerName));
-     Answer = false.
-
-+?checkDeadline(Answer) : .my_name(MyName) & auxiliar(MyName,TaskOwnerName) & acceptedTask(TaskOwnerName, TaskName) & task(TaskName,Deadline,_,_,_) & step(Step, _) <- Answer = true.
-
-+?checkDeadline(Answer) : .my_name(MyName) & not auxiliar(MyName,TaskOwnerName) & not accepted(TaskName,_)<- Answer = false.
++?hasFixAuxiliarSetup(Answer) : .intend(fixAuxiliarSetup(_,_,_,_,_)) <- Answer=true.
++?hasFixAuxiliarSetup(Answer) <- Answer=false.
 ///////////////////////////////////////////////////////////////////////////
-+!fixAuxiliarSetup(XAgentPosition,YAgentPosition,BlockDirection,TaskOwnerName,BlockType) : carrying(_,_,_)
-<-  +blockType(BlockType);
++!fixAuxiliarSetup(XAgentPosition,YAgentPosition,BlockDirection,TaskOwnerName,BlockType) : .intend(fixAuxiliarSetup(_,_,_,_,_)) <- true.
+
++!fixAuxiliarSetup(XAgentPosition,YAgentPosition,BlockDirection,TaskOwnerName,BlockType) : carryingBlock
+<-  .print("started fixAuxiliarSetup");
+    +blockType(BlockType);
     .abolish(carryBlockTo(_,_));
     +carryBlockTo(XAgentPosition,YAgentPosition);
     !carryBlock;
     !setupBlock(BlockDirection);
     .my_name(MyName);
     .send(TaskOwnerName,tell,readyToConnect(MyName));
-    !skip.
+    !skip;
+    .print("ended fixAuxiliarSetup");.
 
-+!fixAuxiliarSetup(XAgentPosition,YAgentPosition,BlockDirection,TaskOwnerName,BlockType) : not carrying(_,_,_)
-<-  +blockType(BlockType);
++!fixAuxiliarSetup(XAgentPosition,YAgentPosition,BlockDirection,TaskOwnerName,BlockType) : not carryingBlock
+<-  .print("started fixAuxiliarSetup");
+    +blockType(BlockType);
     !goToDispenser(BlockType);
     !getBlock;
     .abolish(carryBlockTo(_,_));
@@ -98,19 +58,18 @@
     !setupBlock(BlockDirection);
     .my_name(MyName);
     .send(TaskOwnerName,tell,readyToConnect(MyName));
-    !skip.
+    !skip;
+    .print("ended fixAuxiliarSetup");.
 
 ///////////////////////////////////////////////////////////////////////////
 +!connectAuxiliar : .my_name(MyName) & auxiliar(MyName,TaskOwnerName)
-<-  ?checkDeadline(Answer);
-    if(Answer){
-      ?carrying(XBlock,YBlock,_);
-      !performAction(connect(TaskOwnerName,XBlock,YBlock));
-      ?lastActionResult(success,Time);
-      ?lastAction(connect,Time);
-      ?getDirection(XBlock,YBlock,Direction);
-      !performAction(detach(Direction));
-    }
+<-  //.print("started connectAuxiliar");
+    ?carrying(XBlock,YBlock,_);
+    !performAction(connect(TaskOwnerName,XBlock,YBlock));
+    ?lastActionResult(success,Time);
+    ?lastAction(connect,Time);
+    ?getDirection(XBlock,YBlock,Direction);
+    !performAction(detach(Direction));
     .abolish(ownerPositioned);
     .abolish(blockType(_));
     .abolish(auxiliar(MyName,TaskOwnerName));
@@ -143,9 +102,9 @@
 +!clearBlockAuxiliar : carrying(-1,0,T) & thing(-1,0,block,_,T) <- !performAction(clear(-1,-1));!clearBlockAuxiliar.
 
 ///////////////////////////////////STOP AND RESTART////////////////////////////////////////
-+!stopAndRestart : .intend(goAssist(_,_,_,_)) <- .drop_intention(goAssist(_,_,_,_));.print("--------->dropping goassist");!stopAndRestart.
-+!stopAndRestart : .intend(fixAuxiliarSetup(_,_,_,_,_)) <- .drop_intention(fixAuxiliarSetup(_,_,_,_,_));.print("--------->dropping fixAuxiliarSetup");!stopAndRestart.
-+!stopAndRestart : .intend(connectAuxiliar) <- .drop_intention(connectAuxiliar);.print("--------->dropping connectAuxiliar");!stopAndRestart.
++!stopAndRestart : .intend(goAssist(_,_,_,_)) <- .drop_intention(goAssist(_,_,_,_));!stopAndRestart.
++!stopAndRestart : .intend(fixAuxiliarSetup(_,_,_,_,_)) <- .drop_intention(fixAuxiliarSetup(_,_,_,_,_));!stopAndRestart.
++!stopAndRestart : .intend(connectAuxiliar) <- .drop_intention(connectAuxiliar);!stopAndRestart.
 
 +!stopAndRestart : carrying(X, Y, Time) & .my_name(MyName) & auxiliar(MyName,TaskOwnerName)
 <-  !clearBlockAuxiliar;
@@ -153,22 +112,30 @@
     .abolish(blockType(_));
     .abolish(auxiliar(MyName,TaskOwnerName));
     .broadcast(untell,auxiliar(MyName,TaskOwnerName));
-    !!startMovement.
+    .print("Data cleared");
+    !!startMovement;
+    .print("Should random walk").
 
 +!stopAndRestart : carrying(X, Y, Time) & .my_name(MyName) & not auxiliar(MyName,TaskOwnerName)
 <-  !clearBlockAuxiliar;
     .abolish(ownerPositioned);
     .abolish(blockType(_));
-    !!startMovement.
+    .print("Data cleared");
+    !!startMovement;
+    .print("Should random walk").
 
 +!stopAndRestart : .my_name(MyName) & auxiliar(MyName,TaskOwnerName)
 <-  .abolish(ownerPositioned);
     .abolish(blockType(_));
     .abolish(auxiliar(MyName,TaskOwnerName));
     .broadcast(untell,auxiliar(MyName,TaskOwnerName));
-    !!startMovement.
+    .print("Data cleared");
+    !!startMovement;
+    .print("Should random walk").
 
 +!stopAndRestart
 <-  .abolish(ownerPositioned);
     .abolish(blockType(_));
-    !!startMovement.
+    .print("Data cleared");
+    !!startMovement;
+    .print("Should random walk").

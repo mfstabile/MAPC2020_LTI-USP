@@ -68,11 +68,13 @@ blockBlocked(w) :- carrying(Xblock,Yblock,T) &
 -!chooseDirection <- !performAction(skip);!chooseDirection.
 
 +!startMovement
-<-	.set_random_seed(20);
+<-	.set_random_seed(17);
     !chooseDirection;
 		!randomWalk.
 
 +!randomWalk : not noMoreOwners &
+         step(Step,Time) &
+         Step < 100 &
          dispenser(_,_,b0) &
 				 dispenser(_,_,b1) &
 				 dispenser(_,_,b2) &
@@ -87,7 +89,7 @@ blockBlocked(w) :- carrying(Xblock,Yblock,T) &
 <-    .broadcast(tell, taskowner(MyName));
       +taskowner(MyName);
       .count(taskowner(Owner),TaskOwnerAmountNew);
-      if(TaskOwnerAmountNew>=(AgentAmount/6)){
+      if(TaskOwnerAmountNew>=(AgentAmount/3)){
         .broadcast(tell, noMoreOwners);
         .print("noMoreOwners");
       }
@@ -112,6 +114,13 @@ blockBlocked(w) :- carrying(Xblock,Yblock,T) &
 +!performAction(Action)
 <-	Action;
 		.wait("+step(_,Time)").
+
++!performMoveAction(Direction)
+<-	!performAction(move(Direction));
+    ?lastActionResult(Result,Time);
+    if(Result\==success){
+      !performMoveAction(Direction);
+    }.
 
 +?getLastPosition(X,Y)
 <-	.findall(Timestamp, position(_,_,Timestamp), TimestampList);
@@ -141,40 +150,40 @@ blockBlocked(w) :- carrying(Xblock,Yblock,T) &
 
 ///////////////////////////////UPDATE BLOCK POSITION////////////////////////////////////////////
 +!updateBlock(success,rotate,[cw],Time) : carrying(-1,0,_)
-<-	-carrying(-1,0,_);
-		+carrying(0,-1,Time).
+<-	+carrying(0,-1,Time);
+    -carrying(-1,0,_).
 
 +!updateBlock(success,rotate,[cw],Time) : carrying(0,-1,_)
-<-	-carrying(0,-1,_);
-		+carrying(1,0,Time).
+<-	+carrying(1,0,Time);
+		-carrying(0,-1,_).
 
 +!updateBlock(success,rotate,[cw],Time) : carrying(1,0,_)
-<-	-carrying(1,0,_);
-		+carrying(0,1,Time).
+<-	+carrying(0,1,Time);
+		-carrying(1,0,_).
 
 +!updateBlock(success,rotate,[cw],Time) : carrying(0,1,_)
-<-	-carrying(0,1,_);
-		+carrying(-1,0,Time).
+<-	+carrying(-1,0,Time);
+		-carrying(0,1,_).
 
 +!updateBlock(success,rotate,[ccw],Time) : carrying(-1,0,_)
-<-	-carrying(-1,0,_);
-		+carrying(0,1,Time).
+<-	+carrying(0,1,Time);
+		-carrying(-1,0,_).
 
 +!updateBlock(success,rotate,[ccw],Time) : carrying(0,-1,_)
-<-	-carrying(0,-1,_);
-		+carrying(-1,0,Time).
+<-	+carrying(-1,0,Time);
+		-carrying(0,-1,_).
 
 +!updateBlock(success,rotate,[ccw],Time) : carrying(1,0,_)
-<-	-carrying(1,0,_);
-		+carrying(0,-1,Time).
+<-	+carrying(0,-1,Time);
+		-carrying(1,0,_).
 
 +!updateBlock(success,rotate,[ccw],Time) : carrying(0,1,_)
-<-	-carrying(0,1,_);
-		+carrying(1,0,Time).
+<-	+carrying(1,0,Time);
+		-carrying(0,1,_).
 
-+!updateBlock(_,_,_,Time) : carrying(X,Y,_)
-<-	-carrying(X,Y,_);
-		+carrying(X,Y,Time).
++!updateBlock(_,_,_,Time) : carrying(X,Y,Old)
+<-	+carrying(X,Y,Time);
+		-carrying(X,Y,Old).
 
 +!updateBlock(_,_,_,Time)
 <-	true.

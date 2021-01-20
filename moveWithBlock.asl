@@ -52,7 +52,9 @@
 <-  ?getLastPosition(XPosition,YPosition);
     ?hasBlock(HasBlock);
     if(not HasBlock){
+      .print("abolish carrying 1");
       .abolish(carrying(_,_,_));
+      .abolish(carryingBlock);
       ?blockType(BlockType);
       !goToDispenser(BlockType);
       !getBlock;
@@ -68,7 +70,9 @@
 +!checkBlock(Continue)
 <-  ?hasBlock(HasBlock);
     if(not HasBlock){
+      .print("abolish carrying 2");
       .abolish(carrying(_,_,_));
+      .abolish(carryingBlock);
       ?accepted(TaskName,_);
       if (task(TaskName,Deadline,_,_,_)){
         ?step(Step, _);
@@ -117,6 +121,8 @@
         !chooseAvailableGoal(XNearGoal,YNearGoal);
         .abolish(carryBlockTo(_,_));
         +carryBlockTo(XNearGoal,YNearGoal);
+        .print(AuxiliarAgentName1," unachieve 1");
+        .print(AuxiliarAgentName2," unachieve 1");
         .send(AuxiliarAgentName1,unachieve, goAssist(_,_,_,_));
         .send(AuxiliarAgentName1,unachieve, fixAuxiliarSetup(_,_,_,_,_));
         .send(AuxiliarAgentName1,unachieve,connectAuxiliar);
@@ -163,9 +169,10 @@
         .abolish(auxiliarPosition(_,_,_,_,_,_));
         +auxiliarPosition(AuxiliarAgentName1,XAgentPositionNew1,YAgentPositionNew1,DirectionNew1,BlockType1,1);
         +auxiliarPosition(AuxiliarAgentName2,XAgentPositionNew2,YAgentPositionNew2,DirectionNew2,BlockType2,2);
-        .send(AuxiliarAgentName1,achieve,fixAuxiliarSetup(XAgentPositionNew1,YAgentPositionNew1,DirectionNew1,MyName,BlockType1));
-        .send(AuxiliarAgentName2,achieve,fixAuxiliarSetup(XAgentPositionNew2,YAgentPositionNew2,DirectionNew2,MyName,BlockType2));
-        // .print("***************************New goal position because it is occupied");
+        !achieveAndVerify(AuxiliarAgentName1,XAgentPositionNew1,YAgentPositionNew1,DirectionNew1,MyName,BlockType1);
+        !achieveAndVerify(AuxiliarAgentName2,XAgentPositionNew2,YAgentPositionNew2,DirectionNew2,MyName,BlockType2);
+        .print(AuxiliarAgentName1," fixAuxiliarSetup",XAgentPositionNew1,"_",YAgentPositionNew1,"_",DirectionNew1,"_",MyName,"_",BlockType1);
+        .print(AuxiliarAgentName2," fixAuxiliarSetup",XAgentPositionNew2,"_",YAgentPositionNew2,"_",DirectionNew2,"_",MyName,"_",BlockType2);  // .print("***************************New goal position because it is occupied");
       }
     }
     .
@@ -183,6 +190,7 @@
         !chooseAvailableGoal(XNearGoal,YNearGoal);
         .abolish(carryBlockTo(_,_));
         +carryBlockTo(XNearGoal,YNearGoal);
+        .print(AuxiliarAgentName," unachieve 2");
         .send(AuxiliarAgentName,unachieve, goAssist(_,_,_,_));
         .send(AuxiliarAgentName,unachieve, fixAuxiliarSetup(_,_,_,_,_));
         .send(AuxiliarAgentName,unachieve,connectAuxiliar);
@@ -201,7 +209,9 @@
         }
         .abolish(auxiliarPosition(AuxiliarAgentName,_,_,_,_,_));
         +auxiliarPosition(AuxiliarAgentName,XAgentPositionNew,YAgentPositionNew,DirectionNew,BlockType,Order);
-        .send(AuxiliarAgentName,achieve,fixAuxiliarSetup(XAgentPositionNew,YAgentPositionNew,DirectionNew,MyName,BlockType));
+        !achieveAndVerify(AuxiliarAgentName,XAgentPositionNew,YAgentPositionNew,DirectionNew,MyName,BlockType);
+        .print(AuxiliarAgentName," fixAuxiliarSetup",XAgentPositionNew,"_",YAgentPositionNew,"_",DirectionNew,"_",MyName,"_",BlockType);
+
         // .print("***************************New goal position because it is occupied");
       }
     }
@@ -216,6 +226,22 @@
     +carryBlockTo(MyX,MyY);
     !clearBlock;
     !abortAuxiliarAssist.
+
+
++!achieveAndVerify(AuxiliarAgentName,XAgentPositionNew,YAgentPositionNew,DirectionNew,MyName,BlockType)
+<- .print("sending achieveAndVerify to ",AuxiliarAgentName);
+   .send(AuxiliarAgentName,achieve,fixAuxiliarSetup(XAgentPositionNew,YAgentPositionNew,DirectionNew,MyName,BlockType));
+   .send(AuxiliarAgentName,askOne,hasFixAuxiliarSetup(AnswerLiteral),AnswerLiteral,2000);
+   .print(AnswerLiteral);
+   if(AnswerLiteral==timeout){
+     !achieveAndVerify(AuxiliarAgentName,XAgentPositionNew,YAgentPositionNew,DirectionNew,MyName,BlockType);
+   }else{
+     hasFixAuxiliarSetup(Answer) = AnswerLiteral;
+     if(Answer \== true){
+       .print("*****************%%%%%%%%%%%%%>>> FAILED achieveAndVerify to ",AuxiliarAgentName);
+       !achieveAndVerify(AuxiliarAgentName,XAgentPositionNew,YAgentPositionNew,DirectionNew,MyName,BlockType);
+     }
+   }.
 
 +!chooseAvailableGoal(XNearGoal,YNearGoal)
 <-  ?getLastPosition(MyX,MyY);

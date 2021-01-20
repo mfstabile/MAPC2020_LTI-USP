@@ -24,7 +24,10 @@
 
 ////////////////////////////////IDENTIFYING AGENTS///////////////////////////////////////////
 +step(Step,Time)
-<-  if(Step \== 0){
+<-  if(Step mod 30 == 0){
+      .print("current step: ", Step);
+    };
+    if(Step \== 0){
       ?lastActionResult(ActionStatus,Time);
       ?lastAction(ActionType,Time);
       ?lastActionParams(ActionParams,Time);
@@ -34,9 +37,11 @@
       !updateBlock(ActionStatus,ActionType,ActionParams,Time);
       !updatePosition(ActionStatus,ActionType,ActionParams,Time);
     };
-    for(entity(XEntity,YEntity,XAg,YAg,Step-2)){
-        if(.count(entityMessage(_,-XEntity,-YEntity,_,_,Step-2),1)){
-          ?entityMessage(Sender,-XEntity,-YEntity,XSender,YSender,Step-2);
+    Range = 5;
+    StepRange = Step - Range;
+    for(entity(XEntity,YEntity,XAg,YAg,StepRange)){
+        if(.count(entityMessage(_,-XEntity,-YEntity,_,_,StepRange),1)){
+          ?entityMessage(Sender,-XEntity,-YEntity,XSender,YSender,StepRange);
           XMapper = XSender - (XAg + XEntity);
           YMapper = YSender - (YAg + YEntity);
           if(.count(mapper(Sender,_,_),0)){
@@ -53,7 +58,7 @@
             for ( dispenser(XDispenser,YDispenser,DispType) ) {
               if(not .number(XDispenser)){
                 .type(XDispenser,Type);
-                  .print(Type,"------------------------>",XDispenser," : ",YDispenser," : ",DispType);
+                .print(Type,"------------------------>",XDispenser," : ",YDispenser," : ",DispType);
               }else{
                   .send(Sender,tell,dispenser(XDispenser+XMapper, YDispenser+YMapper, DispType));
               }
@@ -77,13 +82,13 @@
           // }
         }
     };
-    .abolish(entity(_,_,_,_,Step-2));
-    .abolish(entityMessage(_,_,_,_,_,Step-2));
+    .abolish(entity(_,_,_,_,StepRange));
+    .abolish(entityMessage(_,_,_,_,_,StepRange));
 
     //Removing old positions
     .findall(TimePos,position(_,_,TimePos),TimeList);
-    if(.length(TimeList,Size) & Size>2){
-      .delete(0,2,TimeList,DeleteList);
+    if(.length(TimeList,Size) & Size>Range){
+      .delete(0,Range,TimeList,DeleteList);
       for (.member(Member,DeleteList)){
         .abolish(position(_,_,Member));
         .abolish(obstacle(_,_,Member));

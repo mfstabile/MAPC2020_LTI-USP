@@ -13,10 +13,10 @@
     ?carrying(-1,0,_);
     !setupBlock(s).
 
-+!setupBlock(s) : carrying(0,-1,_) & not blockBlocked(n) <- !performAction(move(n));!setupBlock(s);!performAction(move(s)).
-+!setupBlock(s) : carrying(0,-1,_) & not blockBlocked(n) <- !performAction(move(n));!setupBlock(s);!performAction(move(s)).
++!setupBlock(s) : carrying(0,-1,_) & not blockBlocked(n) <- !performMoveAction(n);!setupBlock(s);!performMoveAction(s).
++!setupBlock(s) : carrying(0,-1,_) & not blockBlocked(n) <- !performMoveAction(n);!setupBlock(s);!performMoveAction(s).
 
-+!setupBlock(s) : carrying(0,-1,_) & not blocked(s) <- !performAction(move(s));!setupBlock(s);!performAction(move(n)).
++!setupBlock(s) : carrying(0,-1,_) & not blocked(s) <- !performMoveAction(s);!setupBlock(s);!performMoveAction(n).
 
 +!setupBlock(s) : carrying(0,-1,_) <- !performAction(skip);!setupBlock(s).
 //block east
@@ -26,7 +26,7 @@
     ?carrying(0,1,_);
     !setupBlock(s).
 
-+!setupBlock(s) : carrying(1,0,_) & not blocked(n) & not blockBlocked(n) <- !performAction(move(n));!setupBlock(s);!performAction(move(s)).
++!setupBlock(s) : carrying(1,0,_) & not blocked(n) & not blockBlocked(n) <- !performMoveAction(n);!setupBlock(s);!performMoveAction(s).
 
 //block west
 +!setupBlock(s) : carrying(-1,0,_) & not blocked(s)
@@ -35,7 +35,7 @@
     ?carrying(0,1,_);
     !setupBlock(s).
 
-+!setupBlock(s) : carrying(-1,0,_) & not blocked(n) & not blockBlocked(n) <- !performAction(move(n));!setupBlock(s);!performAction(move(s)).
++!setupBlock(s) : carrying(-1,0,_) & not blocked(n) & not blockBlocked(n) <- !performMoveAction(n);!setupBlock(s);!performMoveAction(s).
 //fail recover
 
 +!setupBlock(s) : not carrying(_,_,_) <- true.
@@ -57,10 +57,10 @@
     ?carrying(-1,0,_);
     !setupBlock(n).
 
-+!setupBlock(n) : carrying(0,1,_) & not blockBlocked(s) <- !performAction(move(s));!setupBlock(n);!performAction(move(n)).
-+!setupBlock(n) : carrying(0,1,_) & not blockBlocked(s) <- !performAction(move(s));!setupBlock(n);!performAction(move(n)).
++!setupBlock(n) : carrying(0,1,_) & not blockBlocked(s) <- !performMoveAction(s);!setupBlock(n);!performMoveAction(n).
++!setupBlock(n) : carrying(0,1,_) & not blockBlocked(s) <- !performMoveAction(s);!setupBlock(n);!performMoveAction(n).
 
-+!setupBlock(n) : carrying(0,1,_) & not blocked(n) <- !performAction(move(n));!setupBlock(n);!performAction(move(s)).
++!setupBlock(n) : carrying(0,1,_) & not blocked(n) <- !performMoveAction(n);!setupBlock(n);!performMoveAction(s).
 
 +!setupBlock(n) : carrying(0,1,_) <- !performAction(skip);!setupBlock(n).
 //block east
@@ -70,7 +70,7 @@
     ?carrying(0,-1,_);
     !setupBlock(n).
 
-+!setupBlock(n) : carrying(1,0,_) & not blocked(s) & not blockBlocked(s) <- !performAction(move(s));!setupBlock(n);!performAction(move(n)).
++!setupBlock(n) : carrying(1,0,_) & not blocked(s) & not blockBlocked(s) <- !performMoveAction(s);!setupBlock(n);!performMoveAction(n).
 
 //block west
 +!setupBlock(n) : carrying(-1,0,_) & not blocked(n)
@@ -79,7 +79,7 @@
     ?carrying(0,-1,_);
     !setupBlock(n).
 
-+!setupBlock(n) : carrying(-1,0,_) & not blocked(s) & not blockBlocked(s) <- !performAction(move(s));!setupBlock(n);!performAction(move(n)).
++!setupBlock(n) : carrying(-1,0,_) & not blocked(s) & not blockBlocked(s) <- !performMoveAction(s);!setupBlock(n);!performMoveAction(n).
 //fail recover
 
 +!setupBlock(n) : not carrying(_,_,_) <- true.
@@ -101,10 +101,10 @@
     ?carrying(0,-1,_);
     !setupBlock(e).
 
-+!setupBlock(e) : carrying(-1,0,_) & not blockBlocked(w) <- !performAction(move(w));!setupBlock(e);!performAction(move(e)).
-+!setupBlock(e) : carrying(-1,0,_) & not blockBlocked(w) <- !performAction(move(w));!setupBlock(e);!performAction(move(e)).
++!setupBlock(e) : carrying(-1,0,_) & not blockBlocked(w) <- !performMoveAction(w);!setupBlock(e);!performMoveAction(e).
++!setupBlock(e) : carrying(-1,0,_) & not blockBlocked(w) <- !performMoveAction(w);!setupBlock(e);!performMoveAction(e).
 
-+!setupBlock(e) : carrying(-1,0,_) & not blocked(e) <- !performAction(move(e));!setupBlock(e);!performAction(move(w)).
++!setupBlock(e) : carrying(-1,0,_) & not blocked(e) <- !performMoveAction(e);!setupBlock(e);!performMoveAction(w).
 
 +!setupBlock(e) : carrying(-1,0,_) <- !performAction(skip);!setupBlock(e).
 //block north
@@ -114,7 +114,7 @@
     ?carrying(1,0,_);
     !setupBlock(e).
 
-+!setupBlock(e) : carrying(0,-1,_) & not blocked(w) & not blockBlocked(w) <- !performAction(move(w));!setupBlock(e);!performAction(move(e)).
++!setupBlock(e) : carrying(0,-1,_) & not blocked(w) & not blockBlocked(w) <- !performMoveAction(w);!setupBlock(e);!performMoveAction(e).
 
 //block south
 +!setupBlock(e) : carrying(0,1,_) & not blocked(e)
@@ -123,7 +123,7 @@
     ?carrying(1,0,_);
     !setupBlock(e).
 
-+!setupBlock(e) : carrying(0,1,_) & not blocked(w) & not blockBlocked(w) <- !performAction(move(w));!setupBlock(e);!performAction(move(e)).
++!setupBlock(e) : carrying(0,1,_) & not blocked(w) & not blockBlocked(w) <- !performMoveAction(w);!setupBlock(e);!performMoveAction(e).
 //fail recover
 
 +!setupBlock(e) : not carrying(_,_,_) <- true.
@@ -145,10 +145,10 @@
     ?carrying(0,-1,_);
     !setupBlock(w).
 
-+!setupBlock(w) : carrying(1,0,_) & not blockBlocked(e) <- !performAction(move(e));!setupBlock(w);!performAction(move(w)).
-+!setupBlock(w) : carrying(1,0,_) & not blockBlocked(e) <- !performAction(move(e));!setupBlock(w);!performAction(move(w)).
++!setupBlock(w) : carrying(1,0,_) & not blockBlocked(e) <- !performMoveAction(e);!setupBlock(w);!performMoveAction(w).
++!setupBlock(w) : carrying(1,0,_) & not blockBlocked(e) <- !performMoveAction(e);!setupBlock(w);!performMoveAction(w).
 
-+!setupBlock(w) : carrying(1,0,_) & not blocked(w) <- !performAction(move(w));!setupBlock(w);!performAction(move(e)).
++!setupBlock(w) : carrying(1,0,_) & not blocked(w) <- !performMoveAction(w);!setupBlock(w);!performMoveAction(e).
 
 +!setupBlock(w) : carrying(1,0,_) <- !performAction(skip);!setupBlock(w).
 //block north
@@ -158,7 +158,7 @@
     ?carrying(-1,0,_);
     !setupBlock(w).
 
-+!setupBlock(w) : carrying(0,-1,_) & not blocked(e) & not blockBlocked(e) <- !performAction(move(e));!setupBlock(w);!performAction(move(w)).
++!setupBlock(w) : carrying(0,-1,_) & not blocked(e) & not blockBlocked(e) <- !performMoveAction(e);!setupBlock(w);!performMoveAction(w).
 
 //block south
 +!setupBlock(w) : carrying(0,1,_) & not blocked(w)
@@ -167,7 +167,7 @@
     ?carrying(-1,0,_);
     !setupBlock(w).
 
-+!setupBlock(w) : carrying(0,1,_) & not blocked(e) & not blockBlocked(e) <- !performAction(move(e));!setupBlock(w);!performAction(move(w)).
++!setupBlock(w) : carrying(0,1,_) & not blocked(e) & not blockBlocked(e) <- !performMoveAction(e);!setupBlock(w);!performMoveAction(w).
 //fail recover
 
 +!setupBlock(w) : not carrying(_,_,_) <- true.
