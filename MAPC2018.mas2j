@@ -13,6 +13,5 @@ MAS mAPC2018 {
 	environment: jason.eis.EISAdapter
 
     agents:
-		agentA #15;
+		agentLTIUSP #15;
 }
-

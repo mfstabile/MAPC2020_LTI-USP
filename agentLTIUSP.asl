@@ -36,7 +36,9 @@ blockBlocked(w) :- carrying(Xblock,Yblock,T) &
 									  thing(Xblock-1,Yblock+0,block,_,T)).
 
 
-!startMovement.
+!startMovement2.
+
++!startMovement2 <- .wait("+step(_,Time)");!startMovement.
 
 +!chooseDirection
 <-
@@ -68,13 +70,13 @@ blockBlocked(w) :- carrying(Xblock,Yblock,T) &
 -!chooseDirection <- !performAction(skip);!chooseDirection.
 
 +!startMovement
-<-	.set_random_seed(17);
+<-	//.set_random_seed(17);
     !chooseDirection;
 		!randomWalk.
 
 +!randomWalk : not noMoreOwners &
          step(Step,Time) &
-         Step < 100 &
+         //Step < 100 &
          dispenser(_,_,b0) &
 				 dispenser(_,_,b1) &
 				 dispenser(_,_,b2) &
