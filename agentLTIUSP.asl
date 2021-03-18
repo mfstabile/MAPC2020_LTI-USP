@@ -9,6 +9,7 @@
 { include("blockPosition.asl") }
 
 position(0,0,0).
+borderSize(100).
 
 blocked(n) :- obstacle(0,-1,T) | thing(0,-1,entity,_,T) | (thing(0,-1,block,_,T) & (not carrying(0,-1,T))).
 blocked(s) :- obstacle(0,+1,T) | thing(0,+1,entity,_,T) | (thing(0,+1,block,_,T) & (not carrying(0,+1,T))).
@@ -35,29 +36,37 @@ blockBlocked(w) :- carrying(Xblock,Yblock,T) &
 									 (thing(Xblock-1,Yblock+0,entity,_,T) & (Xblock-1 \== 0 | Yblock+0 \== 0)) |
 									  thing(Xblock-1,Yblock+0,block,_,T)).
 
+@default +default<- skip.
 
 !startMovement2.
 
-+!startMovement2 <- .wait("+step(_,Time)");!startMovement.
++!startMovement2 <- .wait("+step(_,Time)");!recoverFromCrash;.print("recovered");!startMovement.
 
-+!chooseDirection
-<-
-		if (blocked(n)){
++!recoverFromCrash : thing(X,Y,entity,"LTIUSP",_) & (X\==0 | Y\==0) & thing(A,B,block,_,T) <- !moveToEmptySpace;!recoverFromCrash.
++!recoverFromCrash : thing(0,1,block,_,T) <- !performAction(clear(1,1));!recoverFromCrash.
++!recoverFromCrash : thing(1,0,block,_,T) <- !performAction(clear(1,1));!recoverFromCrash.
++!recoverFromCrash : thing(0,-1,block,_,T) <- !performAction(clear(-1,-1));!recoverFromCrash.
++!recoverFromCrash : thing(-1,0,block,_,T) <- !performAction(clear(-1,-1));!recoverFromCrash.
++!recoverFromCrash <- true.
+
++!chooseDirection : borderSize(BorderSize)
+<-  ?getLastPosition(X,Y);
+		if (blocked(n) | Y <= -BorderSize){
 			N = [];
 		}else{
 			N = [n];
 		}
-		if (blocked(s)){
+		if (blocked(s) | Y >= BorderSize){
 			S = [];
 		}else{
 			S = [s];
 		}
-		if (blocked(e)){
+		if (blocked(e) | X >= BorderSize){
 			E = [];
 		}else{
 			E = [e];
 		}
-		if (blocked(w)){
+		if (blocked(w) | X <= -BorderSize){
 			W = [];
 		}else{
 			W = [w];
